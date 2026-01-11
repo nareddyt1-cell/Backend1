@@ -1,31 +1,47 @@
 import express from "express";
-import cors from "cors";
 
 const app = express();
+const PORT = process.env.PORT || 10000;
 
-app.use(cors());
-app.use(express.json());
+/* -------------------- CORS FIX -------------------- */
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
 
-app.get("/", (req, res) => {
-  res.send("Enzyme analysis backend running");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
 });
 
-app.post("/analyze", (req, res) => {
+/* -------------------- JSON -------------------- */
+app.use(express.json());
+
+/* -------------------- TEST ROUTE -------------------- */
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
+
+/* -------------------- ANALYZE API -------------------- */
+app.post("/analyze", async (req, res) => {
   const { sequence } = req.body;
 
   if (!sequence) {
-    return res.status(400).json({ error: "No sequence provided" });
+    return res.status(400).json({ error: "Sequence required" });
   }
 
+  // TODO: real UniProt / AlphaFold logic goes here later
   res.json({
     uniprot_id: "P69905",
-    damage_type: "Moderate structural disruption",
+    damage_type: "Damaged",
     functional_impact: "Reduced catalytic efficiency",
-    confidence: "0.78"
+    confidence: "0.87"
   });
 });
 
-const PORT = process.env.PORT || 3000;
+/* -------------------- START -------------------- */
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Backend running on port ${PORT}`);
 });
