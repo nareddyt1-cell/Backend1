@@ -1,1 +1,47 @@
+import express from "express";
 
+const app = express();
+const PORT = process.env.PORT || 10000;
+
+/* -------------------- CORS FIX -------------------- */
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(200);
+  }
+
+  next();
+});
+
+/* -------------------- JSON -------------------- */
+app.use(express.json());
+
+/* -------------------- TEST ROUTE -------------------- */
+app.get("/", (req, res) => {
+  res.send("Backend is running");
+});
+
+/* -------------------- ANALYZE API -------------------- */
+app.post("/analyze", async (req, res) => {
+  const { sequence } = req.body;
+
+  if (!sequence) {
+    return res.status(400).json({ error: "Sequence required" });
+  }
+
+  // TODO: real UniProt / AlphaFold logic goes here later
+  res.json({
+    uniprot_id: "P69905",
+    damage_type: "Damaged",
+    functional_impact: "Reduced catalytic efficiency",
+    confidence: "0.87"
+  });
+});
+
+/* -------------------- START -------------------- */
+app.listen(PORT, () => {
+  console.log(`Backend running on port ${PORT}`);
+});
