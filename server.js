@@ -1,47 +1,31 @@
 import express from "express";
+import cors from "cors";
 
 const app = express();
-const PORT = process.env.PORT || 10000;
 
-/* -------------------- CORS FIX -------------------- */
-app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-  res.setHeader("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
-
-  next();
-});
-
-/* -------------------- JSON -------------------- */
+app.use(cors());
 app.use(express.json());
 
-/* -------------------- TEST ROUTE -------------------- */
 app.get("/", (req, res) => {
-  res.send("Backend is running");
+  res.json({ status: "API is running" });
 });
 
-/* -------------------- ANALYZE API -------------------- */
-app.post("/analyze", async (req, res) => {
+app.post("/analyze", (req, res) => {
   const { sequence } = req.body;
 
   if (!sequence) {
-    return res.status(400).json({ error: "Sequence required" });
+    return res.status(400).json({ error: "No sequence provided" });
   }
 
-  // TODO: real UniProt / AlphaFold logic goes here later
   res.json({
-    uniprot_id: "P69905",
+    uniprot_id: "P99999",
     damage_type: "Damaged",
-    functional_impact: "Reduced catalytic efficiency",
-    confidence: "0.87"
+    functional_impact: "Reduced enzymatic activity",
+    confidence: 0.87
   });
 });
 
-/* -------------------- START -------------------- */
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`Backend running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
