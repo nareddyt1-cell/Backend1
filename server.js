@@ -2,120 +2,73 @@ import express from "express";
 import cors from "cors";
 
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
 
 
-
-const pancreaticEnzymes = [
-  {
-    name: "Trypsin-1",
-    uniprot: "P07477",
-    signature: "HISG",
-    activeRegion: "Catalytic triad (His57, Asp102, Ser195)"
+const pancreaticEnzymes = {
+  TRYPSIN: {
+    name: "Trypsin",
+    catalyticRange: [41, 245],
+    description: "Serine protease involved in protein digestion"
   },
-  {
-    name: "Chymotrypsinogen B",
-    uniprot: "P17538",
-    signature: "GNSGG",
-    activeRegion: "Substrate-binding pocket"
-  },
-  {
-    name: "Pancreatic Elastase",
-    uniprot: "P08217",
-    signature: "VGGY",
-    activeRegion: "Elastase specificity loop"
-  },
-  {
-    name: "Pancreatic Alpha-Amylase",
-    uniprot: "P04746",
-    signature: "DVH",
-    activeRegion: "Catalytic starch-binding site"
-  },
-  {
-    name: "Pancreatic Lipase",
-    uniprot: "P16233",
-    signature: "GHSMGG",
-    activeRegion: "Lipase catalytic serine region"
+  CHYMOTRYPSIN: {
+    name: "Chymotrypsin",
+    catalyticRange: [42, 245],
+    description: "Digestive protease targeting aromatic residues"
   }
-];
+};
 
-
-
-function identifyEnzyme(sequence) {
-  for (const enzyme of pancreaticEnzymes) {
-    if (sequence.includes(enzyme.signature)) {
-      return enzyme;
-    }
+function detectEnzyme(sequence) {
+  if (sequence.includes("HISG") && sequence.includes("ASP")) {
+    return pancreaticEnzymes.TRYPSIN;
   }
-  return null;
+  return pancreaticEnzymes.CHYMOTRYPSIN;
 }
 
-function compareSequences(reference, damaged) {
+function compareSequences(ref, damaged) {
   let differences = [];
-  const length = Math.min(reference.length, damaged.length);
+  const len = Math.max(ref.length, damaged.length);
 
-  for (let i = 0; i < length; i++) {
-    if (reference[i] !== damaged[i]) {
-      differences.push({
-        position: i + 1,
-        from: reference[i],
-        to: damaged[i]
-      });
+  for (let i = 0; i < len; i++) {
+    if (ref[i] !== damaged[i]) {
+      differences.push(i + 1);
     }
   }
 
   return differences;
 }
 
-
-
 app.post("/analyze", (req, res) => {
   const { reference_sequence, damaged_sequence } = req.body;
 
   if (!reference_sequence || !damaged_sequence) {
-    return res.status(400).json({
-      error: "Both reference and damaged pancreatic enzyme sequences are required."
-    });
+    return res.status(400).json({ error: "No sequence provided" });
   }
 
-  const enzyme = identifyEnzyme(reference_sequence);
+  const enzyme = detectEnzyme(reference_sequence);
+  const diffs = compareSequences(reference_sequence, damaged_sequence);
 
-  if (!enzyme) {
-    return res.status(400).json({
-      error: "Sequence does not match any known pancreatic enzyme."
-    });
-  }
+  const catalyticDamage = diffs.some(
+    (pos) =>
+      pos >= enzyme.catalyticRange[0] &&
+      pos <= enzyme.catalyticRange[1]
+  );
 
-  const mutations = compareSequences(reference_sequence, damaged_sequence);
-
-  let damageType = "No significant damage detected";
-  let regionDescription = "No critical functional regions affected";
-  let functionalImpact = "Likely retains enzymatic activity";
-  let confidence = 0.95;
-
-  if (mutations.length > 0) {
-    damageType = "Amino acid substitutions detected";
-    regionDescription = `Alterations detected near ${enzyme.activeRegion}`;
-    functionalImpact =
-      "Mutations may disrupt substrate binding or catalytic efficiency";
-    confidence = 0.88;
-  }
-
-  return res.json({
+  res.json({
     enzyme_name: enzyme.name,
-    uniprot_id: enzyme.uniprot,
-    damage_type: damageType,
-    damaged_region_description: regionDescription,
-    functional_impact: functionalImpact,
-    confidence
+    enzyme_description: enzyme.description,
+    damaged_positions: diffs,
+    functional_impact: catalyticDamage
+      ? "Catalytic region damaged — enzymatic activity likely reduced"
+      : "No catalytic damage detected"
   });
 });
 
+
 const PORT = process.env.PORT || 10000;
+
 app.listen(PORT, () => {
   console.log(`Backend running on port ${PORT}`);
 });
-
