@@ -26,12 +26,46 @@ const PANCREATIC_ENZYMES = [
 
 const clean = s => s.toUpperCase().replace(/[^ACDEFGHIKLMNPQRSTVWY]/g,"");
 
-function identifyEnzyme(seq) {
-  return PANCREATIC_ENZYMES.find(e =>
-    seq.length >= e.lengthRange[0] &&
-    seq.length <= e.lengthRange[1]
-  );
+function identifyPancreaticEnzyme(sequence) {
+  const seq = sequence.toUpperCase().replace(/[^A-Z]/g, "");
+
+  // Trypsinogen recognition
+  const hasTrypsinMotif =
+    seq.includes("DDDDK") || // activation peptide
+    (seq.includes("HIS") && seq.includes("ASP") && seq.includes("SER"));
+
+  if (hasTrypsinMotif && seq.length >= 220 && seq.length <= 280) {
+    return {
+      name: "Trypsinogen",
+      gene: "PRSS1",
+      uniprot: "P07477",
+      function: "Pancreatic serine protease precursor that activates digestive enzymes"
+    };
+  }
+
+  // Chymotrypsinogen
+  if (seq.length >= 240 && seq.length <= 260 && seq.includes("CGG")) {
+    return {
+      name: "Chymotrypsinogen",
+      gene: "CTRB1",
+      uniprot: "P17538",
+      function: "Digestive protease precursor"
+    };
+  }
+
+  // Elastase
+  if (seq.length >= 245 && seq.length <= 270 && seq.includes("GNSGG")) {
+    return {
+      name: "Pancreatic Elastase",
+      gene: "CELA3A",
+      uniprot: "P08861",
+      function: "Elastin-degrading protease"
+    };
+  }
+
+  return null;
 }
+
 
 function diff(ref, dam) {
   const diffs = [];
@@ -50,9 +84,14 @@ app.post("/analyze", (req,res)=>{
   const ref = clean(reference_sequence);
   const dam = clean(damaged_sequence);
 
-  const enzyme = identifyEnzyme(ref);
-  if (!enzyme)
-    return res.status(400).json({ error:"Not a known pancreatic enzyme" });
+const enzyme = identifyPancreaticEnzyme(reference_sequence);
+
+if (!enzyme) {
+  return res.status(400).json({
+    error: "Sequence does not match known pancreatic enzymes"
+  });
+}
+
 
   const diffs = diff(ref,dam);
   const catalyticHits = enzyme.catalytic.filter(p=>diffs.includes(p));
