@@ -3,113 +3,196 @@ import cors from "cors";
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json());
+
 
 
 const PANCREATIC_ENZYMES = [
-  { name: "Trypsin-1", uniprot: "P07477", lengthRange: [245, 255], catalytic: [57,102,195] },
-  { name: "Trypsin-2", uniprot: "P07478", lengthRange: [245, 255], catalytic: [57,102,195] },
-  { name: "Chymotrypsin-B", uniprot: "P17538", lengthRange: [240, 250], catalytic: [57,102,195] },
-  { name: "Chymotrypsin-C", uniprot: "Q6X4W1", lengthRange: [240, 250], catalytic: [57,102,195] },
-  { name: "Elastase-1", uniprot: "P08246", lengthRange: [210, 225], catalytic: [57,102,195] },
-  { name: "Elastase-2", uniprot: "P08217", lengthRange: [210, 225], catalytic: [57,102,195] },
-  { name: "Carboxypeptidase A1", uniprot: "P15085", lengthRange: [400, 420], catalytic: [] },
-  { name: "Carboxypeptidase A2", uniprot: "P15086", lengthRange: [400, 420], catalytic: [] },
-  { name: "Carboxypeptidase B1", uniprot: "P10619", lengthRange: [400, 420], catalytic: [] },
-  { name: "Pancreatic Lipase", uniprot: "P16233", lengthRange: [430, 460], catalytic: [153,177,264] },
-  { name: "Phospholipase A2", uniprot: "P04054", lengthRange: [120, 135], catalytic: [48,49] },
-  { name: "Pancreatic Amylase", uniprot: "P04745", lengthRange: [490, 520], catalytic: [] },
-  { name: "Ribonuclease A", uniprot: "P07998", lengthRange: [120, 130], catalytic: [12,41,119] },
-  { name: "Deoxyribonuclease I", uniprot: "P24855", lengthRange: [250, 280], catalytic: [] }
+  {
+    name: "Trypsinogen",
+    gene: "PRSS1",
+    uniprot: "P07477",
+    lengthRange: [230, 270],
+    activeSiteMotifs: ["IVGGY", "HIS", "ASP", "SER"],
+    zymogenActivation: "DDDDK",
+    function:
+      "Inactive precursor of trypsin, a key serine protease for protein digestion"
+  },
+  {
+    name: "Chymotrypsinogen",
+    gene: "CTRB1",
+    uniprot: "P17538",
+    lengthRange: [245, 270],
+    activeSiteMotifs: ["IVGGY", "HIS", "ASP", "SER"],
+    function:
+      "Inactive precursor of chymotrypsin, involved in protein digestion"
+  },
+  {
+    name: "Elastase",
+    gene: "CELA3A",
+    uniprot: "P08246",
+    lengthRange: [240, 270],
+    activeSiteMotifs: ["IVGGY", "HIS", "ASP", "SER"],
+    function:
+      "Pancreatic elastase that digests elastin and other proteins"
+  },
+  {
+    name: "Carboxypeptidase A1",
+    gene: "CPA1",
+    uniprot: "P15085",
+    lengthRange: [400, 430],
+    activeSiteMotifs: ["HIS", "GLU", "TYR"],
+    function:
+      "Exopeptidase that removes C-terminal amino acids"
+  },
+  {
+    name: "Carboxypeptidase B1",
+    gene: "CPB1",
+    uniprot: "P16870",
+    lengthRange: [400, 430],
+    activeSiteMotifs: ["HIS", "GLU", "TYR"],
+    function:
+      "C-terminal basic amino acid digestion"
+  },
+  {
+    name: "Pancreatic Lipase",
+    gene: "PNLIP",
+    uniprot: "P16233",
+    lengthRange: [440, 470],
+    activeSiteMotifs: ["GHSMGG"],
+    function:
+      "Digests dietary triglycerides"
+  },
+  {
+    name: "Colipase",
+    gene: "CLPS",
+    uniprot: "P12111",
+    lengthRange: [90, 110],
+    activeSiteMotifs: ["CYS"],
+    function:
+      "Cofactor for pancreatic lipase"
+  },
+  {
+    name: "Pancreatic Amylase",
+    gene: "AMY2A",
+    uniprot: "P04745",
+    lengthRange: [490, 520],
+    activeSiteMotifs: ["DVVLD", "HIS"],
+    function:
+      "Breaks down starch into sugars"
+  },
+  {
+    name: "Phospholipase A2",
+    gene: "PLA2G1B",
+    uniprot: "P04054",
+    lengthRange: [120, 145],
+    activeSiteMotifs: ["HIS", "ASP"],
+    function:
+      "Hydrolyzes phospholipids"
+  }
 ];
 
 
-const clean = s => s.toUpperCase().replace(/[^ACDEFGHIKLMNPQRSTVWY]/g,"");
 
-function identifyPancreaticEnzyme(sequence) {
-  const seq = sequence.toUpperCase().replace(/[^A-Z]/g, "");
+function cleanSequence(seq) {
+  return seq
+    .replace(/^>.*\n?/g, "")
+    .replace(/[^A-Z]/gi, "")
+    .toUpperCase();
+}
 
-  // Trypsinogen recognition
-  const hasTrypsinMotif =
-    seq.includes("DDDDK") || // activation peptide
-    (seq.includes("HIS") && seq.includes("ASP") && seq.includes("SER"));
 
-  if (hasTrypsinMotif && seq.length >= 220 && seq.length <= 280) {
-    return {
-      name: "Trypsinogen",
-      gene: "PRSS1",
-      uniprot: "P07477",
-      function: "Pancreatic serine protease precursor that activates digestive enzymes"
-    };
+
+function identifyEnzyme(sequence) {
+  const length = sequence.length;
+
+  for (const enzyme of PANCREATIC_ENZYMES) {
+    if (
+      length >= enzyme.lengthRange[0] &&
+      length <= enzyme.lengthRange[1]
+    ) {
+      let motifHits = 0;
+      for (const motif of enzyme.activeSiteMotifs) {
+        if (sequence.includes(motif)) motifHits++;
+      }
+
+      if (motifHits >= Math.max(1, enzyme.activeSiteMotifs.length - 1)) {
+        return enzyme;
+      }
+    }
   }
-
-  // Chymotrypsinogen
-  if (seq.length >= 240 && seq.length <= 260 && seq.includes("CGG")) {
-    return {
-      name: "Chymotrypsinogen",
-      gene: "CTRB1",
-      uniprot: "P17538",
-      function: "Digestive protease precursor"
-    };
-  }
-
-  // Elastase
-  if (seq.length >= 245 && seq.length <= 270 && seq.includes("GNSGG")) {
-    return {
-      name: "Pancreatic Elastase",
-      gene: "CELA3A",
-      uniprot: "P08861",
-      function: "Elastin-degrading protease"
-    };
-  }
-
   return null;
 }
 
 
-function diff(ref, dam) {
-  const diffs = [];
-  for (let i=0;i<Math.max(ref.length, dam.length);i++) {
-    if (ref[i] !== dam[i]) diffs.push(i+1);
+
+function analyzeDamage(sequence, enzyme) {
+  const missingMotifs = enzyme.activeSiteMotifs.filter(
+    motif => !sequence.includes(motif)
+  );
+
+  if (missingMotifs.length === 0) {
+    return {
+      classification: "No detectable damage",
+      impact:
+        "Active site motifs are intact; enzymatic function likely preserved",
+      confidence: "0.95"
+    };
   }
-  return diffs;
+
+  return {
+    classification: "Damaged active site",
+    impact:
+      "Missing critical residues: " +
+      missingMotifs.join(", ") +
+      ". Catalytic activity likely impaired.",
+    confidence: "0.90"
+  };
 }
 
 
-app.post("/analyze", (req,res)=>{
-  const { reference_sequence, damaged_sequence } = req.body;
-  if (!reference_sequence || !damaged_sequence)
-    return res.status(400).json({ error:"Sequences required" });
 
-  const ref = clean(reference_sequence);
-  const dam = clean(damaged_sequence);
+app.post("/analyze", (req, res) => {
+  const rawSequence = req.body.sequence;
 
-const enzyme = identifyPancreaticEnzyme(reference_sequence);
+  if (!rawSequence) {
+    return res.status(400).json({ error: "No sequence provided" });
+  }
 
-if (!enzyme) {
-  return res.status(400).json({
-    error: "Sequence does not match known pancreatic enzymes"
-  });
-}
+  const sequence = cleanSequence(rawSequence);
+  const enzyme = identifyEnzyme(sequence);
 
+  if (!enzyme) {
+    return res.json({
+      uniprot_id: "Unknown",
+      enzyme: "Not a pancreatic enzyme",
+      damage_type: "Unknown",
+      functional_impact: "Sequence does not match known pancreatic enzymes",
+      confidence: "0.10"
+    });
+  }
 
-  const diffs = diff(ref,dam);
-  const catalyticHits = enzyme.catalytic.filter(p=>diffs.includes(p));
+  const damage = analyzeDamage(sequence, enzyme);
 
   res.json({
     enzyme: enzyme.name,
+    gene: enzyme.gene,
     uniprot_id: enzyme.uniprot,
-    total_differences: diffs.length,
-    catalytic_damage: catalyticHits.length > 0,
-    damaged_positions: diffs.slice(0,30),
-    interpretation:
-      catalyticHits.length
-        ? "Catalytic residue damage — loss of enzymatic activity likely"
-        : diffs.length
-        ? "Non-catalytic damage — partial functional impairment possible"
-        : "No damage detected"
+    damage_type: damage.classification,
+    functional_impact: damage.impact,
+    confidence: damage.confidence,
+    preview:
+      "Identified pancreatic enzyme: " +
+      enzyme.name +
+      " (" +
+      enzyme.gene +
+      ")"
   });
 });
 
+
+
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, ()=>console.log("Pancreatic enzyme backend running"));
+app.listen(PORT, () => {
+  console.log(`Pancreatic enzyme backend running on port ${PORT}`);
+});
