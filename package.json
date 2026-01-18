@@ -1,10 +1,10 @@
 {
-  "name": "pancreatic-enzyme-backend",
+  "name": "Backend1",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "server.py",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.py"
   },
   "dependencies": {
     "express": "^4.19.2",
