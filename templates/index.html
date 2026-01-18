@@ -1,24 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Pancreatic Proenzyme Sequence Analyzer</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f9f9f9;
+            padding: 40px;
+        }
+        h1 { margin-bottom: 20px; }
+        textarea {
+            width: 100%;
+            height: 150px;
+            font-family: monospace;
+            font-size: 14px;
+            line-height: 1.3;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+        button {
+            padding: 12px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #sequenceView {
+            font-family: monospace;
+            white-space: pre-wrap;
+            background: #fff;
+            padding: 15px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+        #results {
+            background: #fff;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+        }
+        .mutation {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
 </head>
 <body>
 
 <h1>Pancreatic Proenzyme Sequence Analyzer</h1>
 
-<textarea id="normal" placeholder="Normal proenzyme sequence"></textarea><br><br>
-<textarea id="damaged" placeholder="Damaged proenzyme sequence"></textarea><br><br>
+<label>Normal Proenzyme Sequence:</label>
+<textarea id="normal" placeholder="Paste normal enzyme sequence here"></textarea>
 
-<button onclick="analyze()">Analyze</button>
+<label>Damaged Proenzyme Sequence:</label>
+<textarea id="damaged" placeholder="Paste damaged enzyme sequence here"></textarea>
+
+<button onclick="analyze()">Analyze Sequence</button>
 
 <h3>Sequence Comparison</h3>
-<pre id="sequenceView" style="font-family: monospace;"></pre>
+<pre id="sequenceView"></pre>
 
-<h3>Results</h3>
 <div id="results"></div>
 
+<h3>Functional Likelihood Graph</h3>
 <canvas id="likelihoodChart" width="400" height="200"></canvas>
 
 <script>
@@ -27,63 +76,81 @@ function highlightMutations(normal, damaged, differences) {
     for (let i = 0; i < normal.length; i++) {
         const diff = differences.find(d => d.position === i + 1);
         if (diff) {
-            damagedView += `<span style="color:red;font-weight:bold;">${damaged[i]}</span>`;
+            damagedView += `<span class="mutation">${damaged[i]}</span>`;
         } else {
             damagedView += damaged[i] || "-";
         }
+        if ((i+1) % 50 === 0) damagedView += "\n"; // wrap every 50 residues
     }
-    return `Normal:  ${normal}\nDamaged: ${damagedView}`;
+    let normalWrapped = "";
+    for (let i = 0; i < normal.length; i++) {
+        normalWrapped += normal[i];
+        if ((i+1) % 50 === 0) normalWrapped += "\n";
+    }
+    return `Normal:  ${normalWrapped}\nDamaged: ${damagedView}`;
 }
 
 async function analyze() {
-    const normal = document.getElementById("normal").value;
-    const damaged = document.getElementById("damaged").value;
+    const normal = document.getElementById("normal").value.trim();
+    const damaged = document.getElementById("damaged").value.trim();
+    const resultsDiv = document.getElementById("results");
+    const sequenceDiv = document.getElementById("sequenceView");
 
-    const res = await fetch("/analyze", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            normal_sequence: normal,
-            damaged_sequence: damaged
-        })
-    });
-
-    const data = await res.json();
-
-    document.getElementById("sequenceView").innerHTML =
-        highlightMutations(normal, damaged, data.differences);
-
-    let html = `
-        <p><strong>Total Mutations:</strong> ${data.summary.total_mutations}</p>
-        <p><strong>Functional Likelihood:</strong> ${data.summary.functional_likelihood}%</p>
-    `;
-
-    if (data.matched_enzymes.length > 0) {
-        html += "<h3>Identified Digestive Proenzymes</h3><ul>";
-        data.matched_enzymes.forEach(e => {
-            html += `<li>${e.name} (${e.gene}) – UniProt ${e.accession}</li>`;
-        });
-        html += "</ul>";
+    if (!normal || !damaged) {
+        resultsDiv.innerHTML = "Please enter both sequences.";
+        return;
     }
 
-    document.getElementById("results").innerHTML = html;
+    resultsDiv.innerHTML = "Analyzing...";
+    sequenceDiv.innerHTML = "";
 
-    new Chart(document.getElementById("likelihoodChart"), {
-        type: "bar",
-        data: {
-            labels: ["Normal", "Damaged"],
-            datasets: [{
-                label: "Functional Likelihood (%)",
-                data: [
-                    data.likelihoods.normal,
-                    data.likelihoods.damaged
-                ]
-            }]
-        },
-        options: {
-            scales: { y: { min: 0, max: 100 } }
+    try {
+        const response = await fetch("/analyze", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({ normal_sequence: normal, damaged_sequence: damaged })
+        });
+
+        const data = await response.json();
+
+        // Sequence highlighting
+        sequenceDiv.innerHTML = highlightMutations(normal, damaged, data.differences);
+
+        // Results display
+        let html = `<p><strong>Total Mutations:</strong> ${data.summary.total_mutations}</p>`;
+        html += `<p><strong>Functional Likelihood:</strong> ${data.summary.functional_likelihood}%</p>`;
+
+        if (data.matched_enzymes.length > 0) {
+            html += "<h4>Identified Digestive Proenzymes</h4><ul>";
+            data.matched_enzymes.forEach(e => {
+                html += `<li>${e.name} (${e.gene}) – UniProt: ${e.accession}</li>`;
+            });
+            html += "</ul>";
         }
-    });
+
+        resultsDiv.innerHTML = html;
+
+        // Chart
+        const ctx = document.getElementById("likelihoodChart").getContext("2d");
+        new Chart(ctx, {
+            type: "bar",
+            data: {
+                labels: ["Normal", "Damaged"],
+                datasets: [{
+                    label: "Functional Likelihood (%)",
+                    data: [data.likelihoods.normal, data.likelihoods.damaged],
+                    backgroundColor: ["#4caf50", "#f44336"]
+                }]
+            },
+            options: {
+                scales: { y: { min: 0, max: 100 } }
+            }
+        });
+
+    } catch (err) {
+        console.error(err);
+        resultsDiv.innerHTML = "Error connecting to backend.";
+    }
 }
 </script>
 
