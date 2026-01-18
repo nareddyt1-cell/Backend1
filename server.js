@@ -1,91 +1,152 @@
 import express from "express";
 import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
-
-
-app.use(cors({
-  origin: "*",
-  methods: ["POST", "GET"],
-  allowedHeaders: ["Content-Type"]
-}));
-
+app.use(cors());
 app.use(express.json());
 
 
-const pancreaticEnzymes = [
-  {
-    name: "Trypsinogen",
-    uniprot: "P07477",
-    signature: "IVGGY",
-    description: "Serine protease precursor"
-  },
-  {
-    name: "Chymotrypsinogen",
-    uniprot: "P17538",
-    signature: "CGGSI",
-    description: "Digestive protease precursor"
-  },
-  {
-    name: "Elastase",
-    uniprot: "P08246",
-    signature: "IVGGY",
-    description: "Elastic fiber digestion"
-  }
+
+const PANCREATIC_KEYWORDS = [
+  "TRYPSINOGEN",
+  "TRYPSIN",
+  "CHYMOTRYPSINOGEN",
+  "CHYMOTRYPSIN",
+  "ELASTASE",
+  "CARBOXYPEPTIDASE",
+  "AMYLASE",
+  "LIPASE",
+  "PHOSPHOLIPASE",
+  "RIBONUCLEASE"
 ];
 
 
-app.post("/analyze", (req, res) => {
-  const { reference_sequence, damaged_sequence } = req.body;
+function cleanSequence(seq) {
+  return seq
+    .replace(/^>.*\n?/gm, "")
+    .replace(/[^A-Z]/gi, "")
+    .toUpperCase();
+}
 
-  if (!reference_sequence || !damaged_sequence) {
-    return res.status(400).json({
-      error: "Both reference and damaged sequences are required"
-    });
-  }
+/
+function compareSequences(reference, damaged) {
+  let diffs = [];
+  const len = Math.min(reference.length, damaged.length);
 
-  const ref = reference_sequence.replace(/\s+/g, "").toUpperCase();
-  const dmg = damaged_sequence.replace(/\s+/g, "").toUpperCase();
-
-  let enzymeMatch = null;
-
-  for (const enzyme of pancreaticEnzymes) {
-    if (ref.includes(enzyme.signature)) {
-      enzymeMatch = enzyme;
-      break;
+  for (let i = 0; i < len; i++) {
+    if (reference[i] !== damaged[i]) {
+      diffs.push({
+        position: i + 1,
+        ref: reference[i],
+        damaged: damaged[i]
+      });
     }
   }
 
-  if (!enzymeMatch) {
-    return res.json({
-      enzyme_name: "Unknown pancreatic enzyme",
-      uniprot_id: "N/A",
-      damaged_region: "Unable to determine",
-      functional_impact: "Sequence does not match known pancreatic enzymes",
-      confidence: "Low"
+  return diffs;
+}
+
+
+app.post("/analyze", async (req, res) => {
+  try {
+    const { reference_sequence, damaged_sequence } = req.body;
+
+    if (!reference_sequence || !damaged_sequence) {
+      return res.status(400).json({ error: "No sequence provided" });
+    }
+
+    const refSeq = cleanSequence(reference_sequence);
+    const damSeq = cleanSequence(damaged_sequence);
+
+   
+    const uniprotURL =
+      "https://rest.uniprot.org/uniprotkb/search?query=" +
+      encodeURIComponent(refSeq.slice(0, 30)) +
+      "&format=json&size=5";
+
+    const uniRes = await fetch(uniprotURL);
+    const uniData = await uniRes.json();
+
+    if (!uniData.results || uniData.results.length === 0) {
+      return res.json({
+        enzyme: "Unknown",
+        uniprot_id: "Not found",
+        damage_type: "Unrecognized sequence",
+        functional_impact: "Sequence does not match known pancreatic enzymes",
+        confidence: "Low"
+      });
+    }
+
+  
+    let enzymeMatch = null;
+
+    for (const entry of uniData.results) {
+      const proteinName =
+        entry.proteinDescription?.recommendedName?.fullName?.value ||
+        "";
+
+      const isPancreatic = PANCREATIC_KEYWORDS.some(k =>
+        proteinName.toUpperCase().includes(k)
+      );
+
+      if (isPancreatic) {
+        enzymeMatch = entry;
+        break;
+      }
+    }
+
+    if (!enzymeMatch) {
+      return res.json({
+        enzyme: "Not pancreatic",
+        uniprot_id: "N/A",
+        damage_type: "Non-pancreatic enzyme",
+        functional_impact:
+          "Sequence matched UniProt but is not a pancreatic enzyme",
+        confidence: "Medium"
+      });
+    }
+
+    const enzymeName =
+      enzymeMatch.proteinDescription.recommendedName.fullName.value;
+    const uniprotID = enzymeMatch.primaryAccession;
+    const referenceProteinSeq = enzymeMatch.sequence.value;
+
+    const diffs = compareSequences(referenceProteinSeq, damSeq);
+
+    let damageSummary = "No detectable damage";
+    let functionalImpact = "Likely normal enzymatic activity";
+
+    if (diffs.length > 0) {
+      damageSummary = `Detected ${diffs.length} amino acid substitutions`;
+
+      const catalyticKeywords = ["HIS", "ASP", "SER"];
+
+      functionalImpact =
+        "Damage detected outside critical catalytic residues";
+
+      if (diffs.length > 10) {
+        functionalImpact =
+          "Significant sequence damage — enzymatic activity likely reduced";
+      }
+    }
+
+    res.json({
+      enzyme: enzymeName,
+      uniprot_id: uniprotID,
+      damage_type: damageSummary,
+      functional_impact: functionalImpact,
+      confidence:
+        diffs.length === 0
+          ? "High"
+          : diffs.length < 10
+          ? "Medium"
+          : "Low"
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
   }
-
-  let diffCount = 0;
-  const len = Math.min(ref.length, dmg.length);
-  for (let i = 0; i < len; i++) {
-    if (ref[i] !== dmg[i]) diffCount++;
-  }
-
-  const impact =
-    diffCount === 0
-      ? "No functional damage detected"
-      : diffCount > 10
-      ? "Severe functional impairment likely"
-      : "Partial loss of enzymatic activity likely";
-
-  res.json({
-    enzyme_name: enzymeMatch.name,
-    uniprot_id: enzymeMatch.uniprot,
-    damaged_region: diffCount > 0 ? "Catalytic / structural region affected" : "None",
-    functional_impact: impact,
-    confidence: diffCount > 0 ? "High" : "Very High"
-  });
 });
 
 
