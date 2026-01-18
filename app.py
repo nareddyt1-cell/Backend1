@@ -2,7 +2,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  # allow cross-origin requests
+CORS(app)  # allow frontend requests
 
 def simulate_blast_uniprot_analysis(normal_seq, damaged_seq):
     analysis = []
@@ -38,4 +38,6 @@ def analyze_sequence():
     return jsonify({"result": result_text})
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=10000)
+    import os
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port)
