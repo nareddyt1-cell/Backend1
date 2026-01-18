@@ -60,7 +60,7 @@
 <label>Damaged Proenzyme Sequence:</label>
 <textarea id="damaged" placeholder="Paste damaged enzyme sequence here"></textarea>
 
-<button onclick="analyze()">Analyze Sequence</button>
+<button id="analyzeBtn" onclick="analyze()">Analyze Sequence</button>
 
 <h3>Sequence Comparison</h3>
 <pre id="sequenceView"></pre>
@@ -71,6 +71,8 @@
 <canvas id="likelihoodChart" width="400" height="200"></canvas>
 
 <script>
+let chartInstance = null; // store chart globally
+
 function highlightMutations(normal, damaged, differences) {
     let damagedView = "";
     for (let i = 0; i < normal.length; i++) {
@@ -91,6 +93,7 @@ function highlightMutations(normal, damaged, differences) {
 }
 
 async function analyze() {
+    const btn = document.getElementById("analyzeBtn");
     const normal = document.getElementById("normal").value.trim();
     const damaged = document.getElementById("damaged").value.trim();
     const resultsDiv = document.getElementById("results");
@@ -101,11 +104,12 @@ async function analyze() {
         return;
     }
 
+    // Disable button to prevent multiple clicks
+    btn.disabled = true;
     resultsDiv.innerHTML = "Analyzing...";
     sequenceDiv.innerHTML = "";
 
     try {
-        // fetch relative path, works if frontend is served by Flask
         const response = await fetch("https://backend-688r.onrender.com/analyze", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
@@ -114,10 +118,10 @@ async function analyze() {
 
         const data = await response.json();
 
-        // sequence highlighting
+        // Highlight mutations
         sequenceDiv.innerHTML = highlightMutations(normal, damaged, data.differences);
 
-        // display results
+        // Show results
         let html = `<p><strong>Total Mutations:</strong> ${data.summary.total_mutations}</p>`;
         html += `<p><strong>Functional Likelihood:</strong> ${data.summary.functional_likelihood}%</p>`;
 
@@ -128,12 +132,14 @@ async function analyze() {
             });
             html += "</ul>";
         }
-
         resultsDiv.innerHTML = html;
 
-        // dynamic chart
+        // Destroy previous chart if exists
+        if (chartInstance) chartInstance.destroy();
+
+        // Render chart dynamically
         const ctx = document.getElementById("likelihoodChart").getContext("2d");
-        new Chart(ctx, {
+        chartInstance = new Chart(ctx, {
             type: "bar",
             data: {
                 labels: ["Normal", "Damaged"],
@@ -149,6 +155,8 @@ async function analyze() {
     } catch (err) {
         console.error(err);
         resultsDiv.innerHTML = "Error connecting to backend.";
+    } finally {
+        btn.disabled = false; // re-enable button
     }
 }
 </script>
