@@ -1,22 +1,17 @@
 from flask import Flask, request, jsonify
-from flask_cors import CORS  # <-- enable CORS
+from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)  
+CORS(app)  # allow cross-origin requests
 
 def simulate_blast_uniprot_analysis(normal_seq, damaged_seq):
-    """
-    Simulates analysis: finds differences between sequences
-    and explains possible effects.
-    """
     analysis = []
     min_len = min(len(normal_seq), len(damaged_seq))
 
     for i in range(min_len):
         if normal_seq[i] != damaged_seq[i]:
             analysis.append(
-                f"Position {i+1}: {normal_seq[i]} -> {damaged_seq[i]} | Possible effect: "
-                f"may disrupt enzyme activity or binding."
+                f"Position {i+1}: {normal_seq[i]} -> {damaged_seq[i]} | Possible effect: may disrupt enzyme activity or binding."
             )
 
     if len(damaged_seq) > len(normal_seq):
@@ -43,4 +38,4 @@ def analyze_sequence():
     return jsonify({"result": result_text})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=10000)
