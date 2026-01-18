@@ -25,7 +25,6 @@ def uniprot_lookup(sequence):
     params = {"query": sequence, "format": "json", "size": 5}
     r = requests.get(url, params=params, timeout=10)
     results = []
-
     if r.status_code == 200:
         for entry in r.json().get("results", []):
             gene = entry.get("genes", [{}])[0].get("geneName", {}).get("value")
@@ -53,19 +52,21 @@ def analyze():
                 "effect": "Potential loss of catalytic or structural function"
             })
 
+    mutations = len(differences)
+    # dynamic likelihood calculation
     normal_score = 100
-    damaged_score = max(0, 100 - len(differences) * 5)
+    damaged_score = max(0, 100 * (0.95 ** mutations))  # 5% functional impact per mutation
 
     return jsonify({
         "differences": differences,
         "matched_enzymes": uniprot_lookup(normal),
         "summary": {
-            "total_mutations": len(differences),
-            "functional_likelihood": damaged_score
+            "total_mutations": mutations,
+            "functional_likelihood": round(damaged_score, 2)
         },
         "likelihoods": {
             "normal": normal_score,
-            "damaged": damaged_score
+            "damaged": round(damaged_score, 2)
         }
     })
 
