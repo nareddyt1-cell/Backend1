@@ -29,7 +29,7 @@ function cleanSequence(seq) {
     .toUpperCase();
 }
 
-/
+
 function compareSequences(reference, damaged) {
   let diffs = [];
   const len = Math.min(reference.length, damaged.length);
