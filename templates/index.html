@@ -80,7 +80,7 @@ function highlightMutations(normal, damaged, differences) {
         } else {
             damagedView += damaged[i] || "-";
         }
-        if ((i+1) % 50 === 0) damagedView += "\n"; // wrap every 50 residues
+        if ((i+1) % 50 === 0) damagedView += "\n";
     }
     let normalWrapped = "";
     for (let i = 0; i < normal.length; i++) {
@@ -105,7 +105,8 @@ async function analyze() {
     sequenceDiv.innerHTML = "";
 
     try {
-        const response = await fetch("/analyze", {
+        // fetch relative path, works if frontend is served by Flask
+        const response = await fetch("https://backend-688r.onrender.com/analyze", {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({ normal_sequence: normal, damaged_sequence: damaged })
@@ -113,10 +114,10 @@ async function analyze() {
 
         const data = await response.json();
 
-        // Sequence highlighting
+        // sequence highlighting
         sequenceDiv.innerHTML = highlightMutations(normal, damaged, data.differences);
 
-        // Results display
+        // display results
         let html = `<p><strong>Total Mutations:</strong> ${data.summary.total_mutations}</p>`;
         html += `<p><strong>Functional Likelihood:</strong> ${data.summary.functional_likelihood}%</p>`;
 
@@ -130,7 +131,7 @@ async function analyze() {
 
         resultsDiv.innerHTML = html;
 
-        // Chart
+        // dynamic chart
         const ctx = document.getElementById("likelihoodChart").getContext("2d");
         new Chart(ctx, {
             type: "bar",
@@ -142,9 +143,7 @@ async function analyze() {
                     backgroundColor: ["#4caf50", "#f44336"]
                 }]
             },
-            options: {
-                scales: { y: { min: 0, max: 100 } }
-            }
+            options: { scales: { y: { min: 0, max: 100 } } }
         });
 
     } catch (err) {
