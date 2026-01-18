@@ -1,13 +1,41 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+import requests
 import os
 
 app = Flask(__name__)
 CORS(app)
 
+DIGESTIVE_PROENZYMES = {
+    "PRSS1": "Trypsinogen",
+    "PRSS2": "Trypsinogen-2",
+    "CTRB1": "Chymotrypsinogen B",
+    "CTRC": "Chymotrypsin C",
+    "CPA1": "Procarboxypeptidase A1",
+    "CPB1": "Procarboxypeptidase B",
+    "CELA2A": "Proelastase 2A"
+}
+
 @app.route("/")
 def home():
     return render_template("index.html")
+
+def uniprot_lookup(sequence):
+    url = "https://rest.uniprot.org/uniprotkb/search"
+    params = {"query": sequence, "format": "json", "size": 5}
+    r = requests.get(url, params=params, timeout=10)
+    results = []
+
+    if r.status_code == 200:
+        for entry in r.json().get("results", []):
+            gene = entry.get("genes", [{}])[0].get("geneName", {}).get("value")
+            if gene in DIGESTIVE_PROENZYMES:
+                results.append({
+                    "gene": gene,
+                    "name": DIGESTIVE_PROENZYMES[gene],
+                    "accession": entry["primaryAccession"]
+                })
+    return results
 
 @app.route("/analyze", methods=["POST"])
 def analyze():
@@ -22,14 +50,22 @@ def analyze():
                 "position": i + 1,
                 "expected": n,
                 "found": d,
-                "effect": "Potential impact on catalytic or structural function"
+                "effect": "Potential loss of catalytic or structural function"
             })
+
+    normal_score = 100
+    damaged_score = max(0, 100 - len(differences) * 5)
 
     return jsonify({
         "differences": differences,
+        "matched_enzymes": uniprot_lookup(normal),
         "summary": {
             "total_mutations": len(differences),
-            "functional_likelihood": max(0, 100 - len(differences) * 5)
+            "functional_likelihood": damaged_score
+        },
+        "likelihoods": {
+            "normal": normal_score,
+            "damaged": damaged_score
         }
     })
 
