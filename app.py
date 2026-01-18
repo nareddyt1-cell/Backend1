@@ -53,9 +53,8 @@ def analyze():
             })
 
     mutations = len(differences)
-    # dynamic likelihood calculation
     normal_score = 100
-    damaged_score = max(0, 100 * (0.95 ** mutations))  # 5% functional impact per mutation
+    damaged_score = max(0, 100 * (0.95 ** mutations))  # dynamic likelihood
 
     return jsonify({
         "differences": differences,
