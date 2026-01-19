@@ -4,7 +4,10 @@
     <meta charset="UTF-8">
     <title>Pancreatic Proenzyme Sequence Analyzer</title>
 
-    <!-- Mol* viewer -->
+    <!-- Mol* CSS -->
+    <link href="https://unpkg.com/molstar/build/viewer/molstar.css" rel="stylesheet" />
+
+    <!-- Mol* JS -->
     <script src="https://unpkg.com/molstar/build/viewer/molstar.js"></script>
 
     <style>
@@ -15,10 +18,10 @@
         }
         textarea {
             width: 100%;
-            height: 160px;
+            height: 180px;
             font-family: monospace;
             white-space: pre-wrap;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 15px;
         }
         button {
@@ -26,14 +29,12 @@
             font-size: 16px;
             cursor: pointer;
         }
-        #sequenceView, #results, #mutationEffects {
-            background: #fff;
+        pre, div {
+            background: white;
             padding: 15px;
-            margin-top: 20px;
             border-radius: 6px;
             border: 1px solid #ccc;
-            white-space: pre-wrap;
-            font-family: monospace;
+            margin-top: 20px;
         }
         .mutation {
             color: red;
@@ -41,10 +42,7 @@
         }
         #viewer {
             width: 100%;
-            height: 500px;
-            margin-top: 20px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
+            height: 520px;
         }
     </style>
 </head>
@@ -65,72 +63,81 @@
 
 <div id="results"></div>
 
-<h3>Mutation Effect Analysis</h3>
-<div id="mutationEffects"></div>
+<h3>Mutation Effects</h3>
+<pre id="mutationEffects"></pre>
 
-<h3>AlphaFold Structure Model</h3>
+<h3>AlphaFold Structure</h3>
 <div id="viewer"></div>
 
 <script>
-let viewer = null;
+let molstarViewer = null;
 
 function highlightMutations(normal, damaged, diffs) {
     let out = "";
     for (let i = 0; i < normal.length; i++) {
-        const d = diffs.find(x => x.position === i + 1);
-        out += d ? `<span class="mutation">${damaged[i]}</span>` : (damaged[i] || "-");
+        const mut = diffs.find(x => x.position === i + 1);
+        out += mut ? `<span class="mutation">${damaged[i]}</span>` : (damaged[i] || "-");
         if ((i + 1) % 50 === 0) out += "\n";
     }
     return out;
+}
+
+async function loadStructure(uniprotId) {
+    if (!molstarViewer) {
+        molstarViewer = await molstar.Viewer.create("viewer", {
+            layoutIsExpanded: true,
+            layoutShowControls: true,
+            backgroundColor: 0xFFFFFF
+        });
+    }
+
+    molstarViewer.plugin.clear();
+
+    const url = `https://alphafold.ebi.ac.uk/files/AF-${uniprotId}-F1-model_v4.cif`;
+
+    await molstarViewer.loadStructureFromUrl(
+        url,
+        "mmcif",
+        false
+    );
 }
 
 async function analyze() {
     const btn = document.getElementById("analyzeBtn");
     btn.disabled = true;
 
-    const normal = document.getElementById("normal").value.trim();
-    const damaged = document.getElementById("damaged").value.trim();
-
     try {
-        const res = await fetch("https://backend-688r.onrender.com/analyze", {
+        const res = await fetch("/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ normal_sequence: normal, damaged_sequence: damaged })
+            body: JSON.stringify({
+                normal_sequence: normal.value.trim(),
+                damaged_sequence: damaged.value.trim()
+            })
         });
 
         const data = await res.json();
 
-        document.getElementById("sequenceView").innerHTML =
-            highlightMutations(normal, damaged, data.differences);
+        sequenceView.innerHTML =
+            highlightMutations(normal.value, damaged.value, data.differences);
 
-        document.getElementById("results").innerHTML = `
+        results.innerHTML = `
             <b>Total Mutations:</b> ${data.summary.total_mutations}<br>
             <b>Functional Likelihood:</b> ${data.summary.functional_likelihood}%
         `;
 
-        let effects = "";
-        data.mutation_effects.forEach(m =>
-            effects += `Position ${m.position}: ${m.effect}\n`
-        );
-        document.getElementById("mutationEffects").innerText = effects || "No major effects detected.";
+        mutationEffects.textContent =
+            data.mutation_effects.map(m =>
+                `Position ${m.position}: ${m.effect}`
+            ).join("\n");
 
-        // Load AlphaFold model
         if (data.alphafold_id) {
-            if (!viewer) {
-                viewer = new molstar.Viewer("viewer", {
-                    layoutIsExpanded: true,
-                    layoutShowControls: false
-                });
-            }
-            viewer.loadStructureFromUrl(
-                `https://alphafold.ebi.ac.uk/files/AF-${data.alphafold_id}-F1-model_v4.cif`,
-                "mmcif"
-            );
+            await loadStructure(data.alphafold_id);
         }
 
-    } catch (e) {
-        alert("Backend connection error");
-        console.error(e);
+    } catch (err) {
+        alert("Failed to connect to backend");
+        console.error(err);
     } finally {
         btn.disabled = false;
     }
