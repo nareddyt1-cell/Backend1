@@ -37,7 +37,7 @@
             border: 1px solid #ccc;
             margin-top: 20px;
         }
-        #results {
+        #results, #mutationEffects {
             background: #fff;
             padding: 15px;
             margin-top: 20px;
@@ -47,6 +47,9 @@
         .mutation {
             color: red;
             font-weight: bold;
+        }
+        .effect-item {
+            margin-bottom: 8px;
         }
     </style>
 </head>
@@ -67,11 +70,14 @@
 
 <div id="results"></div>
 
-<h3>Functional Likelihood Graph</h3>
-<canvas id="likelihoodChart" width="400" height="200"></canvas>
+<h3>Mutation Effect Analysis</h3>
+<div id="mutationEffects"></div>
+
+<h3>Functional Likelihood</h3>
+<canvas id="likelihoodChart" width="300" height="300"></canvas>
 
 <script>
-let chartInstance = null; // store chart globally
+let chartInstance = null;
 
 function highlightMutations(normal, damaged, differences) {
     let damagedView = "";
@@ -98,16 +104,17 @@ async function analyze() {
     const damaged = document.getElementById("damaged").value.trim();
     const resultsDiv = document.getElementById("results");
     const sequenceDiv = document.getElementById("sequenceView");
+    const mutationDiv = document.getElementById("mutationEffects");
 
     if (!normal || !damaged) {
         resultsDiv.innerHTML = "Please enter both sequences.";
         return;
     }
 
-    // Disable button to prevent multiple clicks
     btn.disabled = true;
     resultsDiv.innerHTML = "Analyzing...";
     sequenceDiv.innerHTML = "";
+    mutationDiv.innerHTML = "";
 
     try {
         const response = await fetch("https://backend-688r.onrender.com/analyze", {
@@ -121,10 +128,9 @@ async function analyze() {
         // Highlight mutations
         sequenceDiv.innerHTML = highlightMutations(normal, damaged, data.differences);
 
-        // Show results
+        // Results
         let html = `<p><strong>Total Mutations:</strong> ${data.summary.total_mutations}</p>`;
         html += `<p><strong>Functional Likelihood:</strong> ${data.summary.functional_likelihood}%</p>`;
-
         if (data.matched_enzymes.length > 0) {
             html += "<h4>Identified Digestive Proenzymes</h4><ul>";
             data.matched_enzymes.forEach(e => {
@@ -134,29 +140,41 @@ async function analyze() {
         }
         resultsDiv.innerHTML = html;
 
-        // Destroy previous chart if exists
-        if (chartInstance) chartInstance.destroy();
+        // Mutation effects
+        if (data.mutation_effects.length > 0) {
+            let effectHTML = "";
+            data.mutation_effects.forEach(eff => {
+                effectHTML += `<div class="effect-item"><strong>Position ${eff.position} (${eff.mutated_residue}):</strong> ${eff.effect}</div>`;
+            });
+            mutationDiv.innerHTML = effectHTML;
+        } else {
+            mutationDiv.innerHTML = "<p>No significant functional loss detected.</p>";
+        }
 
-        // Render chart dynamically
+        // Functional likelihood chart (doughnut)
+        if (chartInstance) chartInstance.destroy();
         const ctx = document.getElementById("likelihoodChart").getContext("2d");
         chartInstance = new Chart(ctx, {
-            type: "bar",
+            type: "doughnut",
             data: {
-                labels: ["Normal", "Damaged"],
+                labels: ["Functional", "Lost"],
                 datasets: [{
-                    label: "Functional Likelihood (%)",
-                    data: [data.likelihoods.normal, data.likelihoods.damaged],
+                    data: [data.likelihoods.damaged, 100 - data.likelihoods.damaged],
                     backgroundColor: ["#4caf50", "#f44336"]
                 }]
             },
-            options: { scales: { y: { min: 0, max: 100 } } }
+            options: {
+                responsive: true,
+                plugins: { legend: { position: 'bottom' } },
+                cutout: '70%'
+            }
         });
 
     } catch (err) {
         console.error(err);
         resultsDiv.innerHTML = "Error connecting to backend.";
     } finally {
-        btn.disabled = false; // re-enable button
+        btn.disabled = false;
     }
 }
 </script>
