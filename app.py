@@ -7,7 +7,8 @@ CORS(app)
 
 @app.route("/")
 def home():
-    return render_template("index.html")
+    return "<h1>Backend is alive</h1>"
+
 
 
 # Canonical digestive proenzymes with confirmed AlphaFold coverage
