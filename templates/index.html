@@ -14,9 +14,7 @@ body {
     margin: 20px;
 }
 
-h1 {
-    text-align: center;
-}
+h1 { text-align: center; }
 
 textarea {
     width: 100%;
@@ -93,10 +91,7 @@ async function analyze() {
     const response = await fetch("https://backend-688r.onrender.com/analyze", {
         method: "POST",
         headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({
-            normal_sequence: normalSeq,
-            damaged_sequence: damagedSeq
-        })
+        body: JSON.stringify({normal_sequence: normalSeq, damaged_sequence: damagedSeq})
     });
 
     const data = await response.json();
@@ -106,9 +101,7 @@ async function analyze() {
 function renderResults(data) {
     document.getElementById("mutations").innerHTML =
         data.mutations.length
-        ? data.mutations.map(m =>
-            `Position ${m.position}: ${m.normal} → ${m.damaged}`
-          ).join("<br>")
+        ? data.mutations.map(m => `Position ${m.position}: ${m.normal} → ${m.damaged}`).join("<br>")
         : "No mutations detected";
 
     document.getElementById("lostFunctions").innerHTML =
@@ -138,16 +131,24 @@ function renderChart(values) {
 }
 
 function loadStructure(uniprotId) {
-    document.getElementById("molecule-viewer").innerHTML = "";
+    const viewerDiv = document.getElementById("molecule-viewer");
+    viewerDiv.innerHTML = "";
 
-    molstar.Viewer.create("molecule-viewer", {
-        layoutIsExpanded: true
-    }).then(viewer => {
-        viewer.loadStructureFromUrl(
-            `https://alphafold.ebi.ac.uk/files/AF-${uniprotId}-F1-model_v4.cif`,
-            "mmcif"
-        );
-    });
+    if (!uniprotId) {
+        viewerDiv.innerHTML = "<p>No AlphaFold structure available for this enzyme.</p>";
+        return;
+    }
+
+    molstar.Viewer.create("molecule-viewer", { layoutIsExpanded: true })
+        .then(viewer => {
+            viewer.loadStructureFromUrl(
+                `https://alphafold.ebi.ac.uk/files/AF-${uniprotId}-F1-model_v4.cif`,
+                "mmcif"
+            ).catch(err => {
+                viewerDiv.innerHTML = "<p>Failed to load AlphaFold structure.</p>";
+                console.error(err);
+            });
+        });
 }
 </script>
 
