@@ -21,6 +21,9 @@ def home():
     return render_template("index.html")
 
 def uniprot_lookup(sequence):
+    """
+    Query UniProt for sequence; return info for digestive proenzymes.
+    """
     url = "https://rest.uniprot.org/uniprotkb/search"
     params = {"query": sequence, "format": "json", "size": 5}
     r = requests.get(url, params=params, timeout=10)
@@ -29,10 +32,12 @@ def uniprot_lookup(sequence):
         for entry in r.json().get("results", []):
             gene = entry.get("genes", [{}])[0].get("geneName", {}).get("value")
             if gene in DIGESTIVE_PROENZYMES:
+                func_text = entry.get("functions", "Function info not available")
                 results.append({
                     "gene": gene,
                     "name": DIGESTIVE_PROENZYMES[gene],
-                    "accession": entry["primaryAccession"]
+                    "accession": entry["primaryAccession"],
+                    "function": func_text
                 })
     return results
 
@@ -43,6 +48,8 @@ def analyze():
     damaged = data.get("damaged_sequence", "")
 
     differences = []
+    mutation_effects = []
+
     for i, (n, d) in enumerate(zip(normal, damaged)):
         if n != d:
             differences.append({
@@ -51,14 +58,24 @@ def analyze():
                 "found": d,
                 "effect": "Potential loss of catalytic or structural function"
             })
+            # For demonstration, simple mapping
+            mutation_effects.append({
+                "position": i + 1,
+                "mutated_residue": d,
+                "effect": f"Mutation from {n} to {d} may reduce catalytic activity or stability"
+            })
 
     mutations = len(differences)
     normal_score = 100
-    damaged_score = max(0, 100 * (0.95 ** mutations))  # dynamic likelihood
+    damaged_score = max(0, 100 * (0.95 ** mutations))  # dynamic
+
+    # Get UniProt info
+    matched_enzymes = uniprot_lookup(normal)
 
     return jsonify({
         "differences": differences,
-        "matched_enzymes": uniprot_lookup(normal),
+        "matched_enzymes": matched_enzymes,
+        "mutation_effects": mutation_effects,
         "summary": {
             "total_mutations": mutations,
             "functional_likelihood": round(damaged_score, 2)
