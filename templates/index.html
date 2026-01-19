@@ -3,53 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <title>Pancreatic Proenzyme Sequence Analyzer</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Mol* viewer -->
+    <script src="https://unpkg.com/molstar/build/viewer/molstar.js"></script>
+
     <style>
         body {
             font-family: Arial, sans-serif;
             background: #f9f9f9;
             padding: 40px;
         }
-        h1 { margin-bottom: 20px; }
         textarea {
             width: 100%;
-            height: 150px;
+            height: 160px;
             font-family: monospace;
-            font-size: 14px;
-            line-height: 1.3;
             white-space: pre-wrap;
-            word-wrap: break-word;
-            overflow-wrap: break-word;
-            margin-bottom: 15px;
             padding: 10px;
+            margin-bottom: 15px;
         }
         button {
             padding: 12px 20px;
             font-size: 16px;
             cursor: pointer;
         }
-        #sequenceView {
-            font-family: monospace;
+        #sequenceView, #results, #mutationEffects {
+            background: #fff;
+            padding: 15px;
+            margin-top: 20px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
             white-space: pre-wrap;
-            background: #fff;
-            padding: 15px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
-            margin-top: 20px;
-        }
-        #results, #mutationEffects {
-            background: #fff;
-            padding: 15px;
-            margin-top: 20px;
-            border-radius: 6px;
-            border: 1px solid #ccc;
+            font-family: monospace;
         }
         .mutation {
             color: red;
             font-weight: bold;
         }
-        .effect-item {
-            margin-bottom: 8px;
+        #viewer {
+            width: 100%;
+            height: 500px;
+            margin-top: 20px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
         }
     </style>
 </head>
@@ -57,11 +52,11 @@
 
 <h1>Pancreatic Proenzyme Sequence Analyzer</h1>
 
-<label>Normal Proenzyme Sequence:</label>
-<textarea id="normal" placeholder="Paste normal enzyme sequence here"></textarea>
+<label>Normal Proenzyme Sequence</label>
+<textarea id="normal"></textarea>
 
-<label>Damaged Proenzyme Sequence:</label>
-<textarea id="damaged" placeholder="Paste damaged enzyme sequence here"></textarea>
+<label>Damaged Proenzyme Sequence</label>
+<textarea id="damaged"></textarea>
 
 <button id="analyzeBtn" onclick="analyze()">Analyze Sequence</button>
 
@@ -73,106 +68,69 @@
 <h3>Mutation Effect Analysis</h3>
 <div id="mutationEffects"></div>
 
-<h3>Functional Likelihood</h3>
-<canvas id="likelihoodChart" width="300" height="300"></canvas>
+<h3>AlphaFold Structure Model</h3>
+<div id="viewer"></div>
 
 <script>
-let chartInstance = null;
+let viewer = null;
 
-function highlightMutations(normal, damaged, differences) {
-    let damagedView = "";
+function highlightMutations(normal, damaged, diffs) {
+    let out = "";
     for (let i = 0; i < normal.length; i++) {
-        const diff = differences.find(d => d.position === i + 1);
-        if (diff) {
-            damagedView += `<span class="mutation">${damaged[i]}</span>`;
-        } else {
-            damagedView += damaged[i] || "-";
-        }
-        if ((i+1) % 50 === 0) damagedView += "\n";
+        const d = diffs.find(x => x.position === i + 1);
+        out += d ? `<span class="mutation">${damaged[i]}</span>` : (damaged[i] || "-");
+        if ((i + 1) % 50 === 0) out += "\n";
     }
-    let normalWrapped = "";
-    for (let i = 0; i < normal.length; i++) {
-        normalWrapped += normal[i];
-        if ((i+1) % 50 === 0) normalWrapped += "\n";
-    }
-    return `Normal:  ${normalWrapped}\nDamaged: ${damagedView}`;
+    return out;
 }
 
 async function analyze() {
     const btn = document.getElementById("analyzeBtn");
+    btn.disabled = true;
+
     const normal = document.getElementById("normal").value.trim();
     const damaged = document.getElementById("damaged").value.trim();
-    const resultsDiv = document.getElementById("results");
-    const sequenceDiv = document.getElementById("sequenceView");
-    const mutationDiv = document.getElementById("mutationEffects");
-
-    if (!normal || !damaged) {
-        resultsDiv.innerHTML = "Please enter both sequences.";
-        return;
-    }
-
-    btn.disabled = true;
-    resultsDiv.innerHTML = "Analyzing...";
-    sequenceDiv.innerHTML = "";
-    mutationDiv.innerHTML = "";
 
     try {
-        const response = await fetch("https://backend-688r.onrender.com/analyze", {
+        const res = await fetch("https://backend-688r.onrender.com/analyze", {
             method: "POST",
-            headers: {"Content-Type": "application/json"},
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ normal_sequence: normal, damaged_sequence: damaged })
         });
 
-        const data = await response.json();
+        const data = await res.json();
 
-        // Highlight mutations
-        sequenceDiv.innerHTML = highlightMutations(normal, damaged, data.differences);
+        document.getElementById("sequenceView").innerHTML =
+            highlightMutations(normal, damaged, data.differences);
 
-        // Results
-        let html = `<p><strong>Total Mutations:</strong> ${data.summary.total_mutations}</p>`;
-        html += `<p><strong>Functional Likelihood:</strong> ${data.summary.functional_likelihood}%</p>`;
-        if (data.matched_enzymes.length > 0) {
-            html += "<h4>Identified Digestive Proenzymes</h4><ul>";
-            data.matched_enzymes.forEach(e => {
-                html += `<li>${e.name} (${e.gene}) – UniProt: ${e.accession}</li>`;
-            });
-            html += "</ul>";
-        }
-        resultsDiv.innerHTML = html;
+        document.getElementById("results").innerHTML = `
+            <b>Total Mutations:</b> ${data.summary.total_mutations}<br>
+            <b>Functional Likelihood:</b> ${data.summary.functional_likelihood}%
+        `;
 
-        // Mutation effects
-        if (data.mutation_effects.length > 0) {
-            let effectHTML = "";
-            data.mutation_effects.forEach(eff => {
-                effectHTML += `<div class="effect-item"><strong>Position ${eff.position} (${eff.mutated_residue}):</strong> ${eff.effect}</div>`;
-            });
-            mutationDiv.innerHTML = effectHTML;
-        } else {
-            mutationDiv.innerHTML = "<p>No significant functional loss detected.</p>";
-        }
+        let effects = "";
+        data.mutation_effects.forEach(m =>
+            effects += `Position ${m.position}: ${m.effect}\n`
+        );
+        document.getElementById("mutationEffects").innerText = effects || "No major effects detected.";
 
-        // Functional likelihood chart (doughnut)
-        if (chartInstance) chartInstance.destroy();
-        const ctx = document.getElementById("likelihoodChart").getContext("2d");
-        chartInstance = new Chart(ctx, {
-            type: "doughnut",
-            data: {
-                labels: ["Functional", "Lost"],
-                datasets: [{
-                    data: [data.likelihoods.damaged, 100 - data.likelihoods.damaged],
-                    backgroundColor: ["#4caf50", "#f44336"]
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: { legend: { position: 'bottom' } },
-                cutout: '70%'
+        // Load AlphaFold model
+        if (data.alphafold_id) {
+            if (!viewer) {
+                viewer = new molstar.Viewer("viewer", {
+                    layoutIsExpanded: true,
+                    layoutShowControls: false
+                });
             }
-        });
+            viewer.loadStructureFromUrl(
+                `https://alphafold.ebi.ac.uk/files/AF-${data.alphafold_id}-F1-model_v4.cif`,
+                "mmcif"
+            );
+        }
 
-    } catch (err) {
-        console.error(err);
-        resultsDiv.innerHTML = "Error connecting to backend.";
+    } catch (e) {
+        alert("Backend connection error");
+        console.error(e);
     } finally {
         btn.disabled = false;
     }
