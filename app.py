@@ -5,6 +5,11 @@ import difflib
 app = Flask(__name__)
 CORS(app)
 
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+
 # Canonical digestive proenzymes with confirmed AlphaFold coverage
 DIGESTIVE_PROENZYMES = {
     "trypsinogen": {
