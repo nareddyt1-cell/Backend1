@@ -1,84 +1,25 @@
-import time
-import requests
-import difflib
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+import math
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="templates")
 CORS(app)
 
-DIGESTIVE_KEYWORDS = [
-    "trypsinogen",
-    "chymotrypsinogen",
-    "proelastase",
-    "procarboxypeptidase",
-    "prolipase"
-]
-
-def blast_sequence(sequence):
-    # Step 1: submit BLAST job
-    submit = requests.post(
-        "https://blast.ncbi.nlm.nih.gov/Blast.cgi",
-        data={
-            "CMD": "Put",
-            "PROGRAM": "blastp",
-            "DATABASE": "swissprot",
-            "QUERY": sequence
-        }
-    )
-
-    rid = None
-    for line in submit.text.splitlines():
-        if "RID =" in line:
-            rid = line.split("=")[1].strip()
-
-    if not rid:
-        return None
-
-    # Step 2: poll for results
-    for _ in range(10):
-        time.sleep(3)
-        check = requests.get(
-            "https://blast.ncbi.nlm.nih.gov/Blast.cgi",
-            params={"CMD": "Get", "RID": rid, "FORMAT_TYPE": "JSON2"}
-        )
-        if "BlastOutput2" in check.text:
-            data = check.json()
-            break
-    else:
-        return None
-
-    # Step 3: parse hits
-    hits = data["BlastOutput2"][0]["report"]["results"]["search"]["hits"]
-    for hit in hits:
-        desc = hit["description"][0]["title"].lower()
-        for keyword in DIGESTIVE_KEYWORDS:
-            if keyword in desc:
-                accession = hit["description"][0]["accession"]
-                return {
-                    "enzyme": keyword.title(),
-                    "uniprot": accession
-                }
-
-    return None
-
-def calculate_functionality(normal, damaged):
-    matcher = difflib.SequenceMatcher(None, normal, damaged)
-    similarity = matcher.ratio()
-    mutation_penalty = sum(
-        (i2 - i1)
-        for tag, i1, i2, j1, j2 in matcher.get_opcodes()
-        if tag in ("replace", "delete")
-    )
-    penalty_factor = min(mutation_penalty / len(normal), 0.6)
-    return round(max((similarity * (1 - penalty_factor)) * 100, 5), 2)
-
-def find_mutations(normal, damaged):
-    return [
-        {"position": i+1, "normal": a, "damaged": b}
-        for i, (a, b) in enumerate(zip(normal, damaged))
-        if a != b
-    ]
+DIGESTIVE_PROENZYMES = {
+    "Trypsinogen": {
+        "uniprot": "P07477",
+        "function": "Initiates protein digestion by cleaving peptide bonds"
+    },
+    "Chymotrypsinogen": {
+        "uniprot": "P17538",
+        "function": "Cleaves proteins at aromatic amino acids"
+    },
+    "Procarboxypeptidase A1": {
+        "uniprot": "P15085",
+        "function": "Removes C-terminal amino acids from peptides"
+    }
+}
 
 @app.route("/")
 def home():
@@ -87,29 +28,47 @@ def home():
 @app.route("/analyze", methods=["POST"])
 def analyze():
     data = request.json
-    normal = data["normal_sequence"].upper().strip()
-    damaged = data["damaged_sequence"].upper().strip()
+    normal = data["normal_sequence"].upper()
+    damaged = data["damaged_sequence"].upper()
 
-    enzyme_hit = blast_sequence(damaged)
+    # --- Mutation detection ---
+    mutations = []
+    for i, (a, b) in enumerate(zip(normal, damaged)):
+        if a != b:
+            mutations.append({
+                "position": i + 1,
+                "from": a,
+                "to": b
+            })
 
-    mutations = find_mutations(normal, damaged)
-    functionality = calculate_functionality(normal, damaged)
+    mutation_rate = len(mutations) / max(len(normal), 1)
 
-    lost = []
-    if functionality < 60 and enzyme_hit:
-        lost.append(f"Reduced activity of {enzyme_hit['enzyme']}")
+    # --- Mathematical functionality model ---
+    # Exponential decay (enzyme active sites are fragile)
+    k = 4.0
+    damaged_function = math.exp(-k * mutation_rate)
+    normal_function = 1.0
+
+    damaged_percent = round(damaged_function * 100, 2)
+    normal_percent = 100.0
+
+    # --- Simple enzyme classification heuristic ---
+    identified = "Unknown digestive proenzyme"
+    lost_function = "Unknown biological impact"
+
+    if len(normal) > 200:
+        identified = "Trypsinogen"
+        lost_function = DIGESTIVE_PROENZYMES["Trypsinogen"]["function"]
 
     return jsonify({
-        "enzyme": enzyme_hit["enzyme"] if enzyme_hit else "Unknown digestive enzyme",
-        "uniprot_id": enzyme_hit["uniprot"] if enzyme_hit else None,
+        "identified_enzyme": identified,
+        "mutation_count": len(mutations),
         "mutations": mutations,
-        "functionality": {
-            "normal": 100,
-            "damaged": functionality
-        },
-        "lost_functions": lost
+        "normal_percent": normal_percent,
+        "damaged_percent": damaged_percent,
+        "lost_function": lost_function
     })
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
-v
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
