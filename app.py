@@ -5,14 +5,7 @@ import difflib
 app = Flask(__name__)
 CORS(app)
 
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-
-
-
-# Canonical digestive proenzymes with confirmed AlphaFold coverage
+# Digestive proenzymes with confirmed AlphaFold structures
 DIGESTIVE_PROENZYMES = {
     "trypsinogen": {
         "uniprot": "P07477",
@@ -65,6 +58,10 @@ def find_mutations(normal_seq, damaged_seq):
             })
     return mutations
 
+@app.route("/")
+def home():
+    return render_template("index.html")
+
 @app.route("/analyze", methods=["POST"])
 def analyze():
     data = request.json
@@ -74,7 +71,7 @@ def analyze():
     if not normal_seq or not damaged_seq:
         return jsonify({"error": "Sequences missing"}), 400
 
-    # Simple enzyme detection (length + digestive bias)
+    # For simplicity, detect enzyme as trypsinogen (could expand later)
     enzyme_name = "trypsinogen"
     enzyme_data = DIGESTIVE_PROENZYMES[enzyme_name]
 
