@@ -33,6 +33,8 @@ DIGESTIVE_PROENZYMES = {
     }
 }
 
+VALID_UNIPROT_IDS = [v["uniprot"] for v in DIGESTIVE_PROENZYMES.values()]
+
 def calculate_functionality(normal_seq, damaged_seq):
     matcher = difflib.SequenceMatcher(None, normal_seq, damaged_seq)
     similarity = matcher.ratio()
@@ -71,26 +73,29 @@ def analyze():
     if not normal_seq or not damaged_seq:
         return jsonify({"error": "Sequences missing"}), 400
 
-    # For simplicity, detect enzyme as trypsinogen (could expand later)
+    # For simplicity, pick trypsinogen as example enzyme
     enzyme_name = "trypsinogen"
     enzyme_data = DIGESTIVE_PROENZYMES[enzyme_name]
 
     mutations = find_mutations(normal_seq, damaged_seq)
     functionality = calculate_functionality(normal_seq, damaged_seq)
 
-    impaired_functions = []
+    lost_functions = []
     if functionality < 60:
-        impaired_functions.append(enzyme_data["function"])
+        lost_functions.append(enzyme_data["function"])
+
+    # Only send AlphaFold ID if it's valid
+    uniprot_id = enzyme_data["uniprot"] if enzyme_data["uniprot"] in VALID_UNIPROT_IDS else None
 
     return jsonify({
         "enzyme": enzyme_name.title(),
-        "uniprot_id": enzyme_data["uniprot"],
+        "uniprot_id": uniprot_id,
         "mutations": mutations,
         "functionality": {
             "normal": 100,
             "damaged": functionality
         },
-        "lost_functions": impaired_functions
+        "lost_functions": lost_functions
     })
 
 if __name__ == "__main__":
