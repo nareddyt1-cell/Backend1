@@ -7,7 +7,8 @@ CORS(app)
 
 @app.route("/")
 def home():
-    return "<h1>Backend is alive</h1>"
+    return render_template("index.html")
+
 
 
 
