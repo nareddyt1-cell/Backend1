@@ -19,8 +19,6 @@ textarea {
     word-break: break-word;
 }
 
-
-
 button {    
     margin-top: 12px;
     padding: 12px 20px;
@@ -48,14 +46,9 @@ button {
     font-weight: bold;
 }
 
-.normal {
-    background: #2c7;
-}
-
 .damaged {
     background: #e44;
 }
-
 
 </style>
 </head>
@@ -65,14 +58,10 @@ button {
 <h1>Pancreatic Proenzyme Sequence Analyzer</h1>
 <div class="section">
 
-<h5>UniProtKB Entry Name</h5>
+<h3>UniProtKB Entry Name</h3>
 <textarea id="uniprotkb"></textarea>
 </div>
 
-<div class="section">
-<h3>Functional (Reference) Sequence</h3>
-<textarea id="normal"></textarea>
-</div>
 
 <div class="section">
 <h3>Damaged Sequence</h3>
@@ -88,12 +77,6 @@ button {
 
 <div class="section">
 <h3>Functional Likelihood (%)</h3>
-
-<label>Functional Enzyme Sequence</label>
-<div class="bar-container">
-    <div id="normalBar" class="bar normal" style="width:0%">0%</div>
-</div>
-
 <label>Damaged Enzyme Sequence</label>
 <div class="bar-container">
     <div id="damagedBar" class="bar damaged" style="width:0%">0%</div>
@@ -101,22 +84,18 @@ button {
 </div>
 
 <div class="section">
-<h3>Mutation Details</h3>
-<pre id="mutations">—</pre>
+<h3>Changes in Sequence</h3>
+<pre id="changes">—</pre>
 </div>
 
-<div class="section">
-<h3>Lost Biological Function</h3>
-<div id="lost">—</div>
-</div>
+
 
 <script>
 async function analyze() {
     console.log("Analyze button clicked");
 
-    const normal = document.getElementById("normal").value.trim();
-    const damaged = document.getElementById("damaged").value.trim();
     const uniprotkb = document.getElementById("uniprotkb").value.trim();
+    const damaged = document.getElementById("damaged").value.trim();
     if (!normal || !damaged) {
         alert("Please paste both sequences.");
         return;
@@ -127,31 +106,24 @@ async function analyze() {
             method: "POST",
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
-                normal_sequence: normal,
-                damaged_sequence: damaged,
-                uniprotkb_id: uniprotkb
+                uniprotkb_id: uniprotkb,
+                damaged_sequence: damaged
             })
         });
 
         const data = await response.json();
 
         document.getElementById("enzyme").textContent = data.identified_enzyme;
-        document.getElementById("lost").textContent = data.lost_function;
-
-        document.getElementById("normalBar").style.width = data.normal_percent + "%";
-        document.getElementById("normalBar").textContent = data.normal_percent + "%";
-
         document.getElementById("damagedBar").style.width = data.damaged_percent + "%";
         document.getElementById("damagedBar").textContent = data.damaged_percent + "%";
-
-        document.getElementById("mutations").textContent =
-            data.mutations.map(
+        document.getElementById("changes").textContent = data.changes_in_sequence;
+            data.changes.map(
                 m => `Position ${m.position}: ${m.from} → ${m.to}`
-            ).join("\n") || "No mutations detected.";
+            ).join("\n") || "No changes in amino acids detected.";
 
     } catch (err) {
         console.error(err);
-        alert("Backend connection failed.");
+        alert("Backend connection failed");
     }
 }
 </script>
