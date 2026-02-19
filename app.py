@@ -20,7 +20,7 @@ def analyze():
     damaged = data["damaged_sequence"].upper()
 
 # identifying the enzyme/sequence
-if uniprotkb = "P07477":
+if uniprotkb == "P07477":
     identified = "Trypsinogen"
     WTsequence = (
     "MNPLLILTFVAAALAAPFDDDDKIVGGYNCEENSVPYQVSLNSGYHFCGGSLINEQWVVSAGHCYKSRIQVRLGEHNIEVLEGNEQFINAAKIIRHPQYDRKTLNNDIMLIKLSSRAV"
@@ -28,7 +28,7 @@ if uniprotkb = "P07477":
     "KWIKNTIAANS"
 )
     else:
-        if uniprotkb = "P17538":
+        if uniprotkb == "P17538":
             identified = "Chymotrypsinogen"
             WTsequence = (
     "MASLWLLSCFSLVGAAFGCGVPAIHPVLSGLSRIVNGEDAVPGSWPWQVSLQDKTGFHFCGGSLISEDWVVTAAHCGVRTSDVVVAGEFDQGSDEENIQVLKIAKVFKNPKFSILTVN"
@@ -36,7 +36,7 @@ if uniprotkb = "P07477":
     "TCSTSSPGVYARVTKLIPWVQKILAAN"
 )
             else:
-                if uniprotkb = "P15085":
+                if uniprotkb == "P15085":
                     identified = "Procarboxypeptidase"
                     WTsequence = (
     "MRGLLVLSVLLGAVFGKEDFVGHQVLRISVADEAQVQKVKELEDLEHLQLDFWRGPAHPGSPIDVRVPFPSIQAVKIFLESHGISYETMIEDVQSLLDEEQEQMFAFRSRARSTDTFN"
@@ -45,14 +45,14 @@ if uniprotkb = "P07477":
     "KAIYQASGSTIDWTYSQGIKYSFTFELRDTGRYGFLLPASQIIPTAKETWLALLTIMEHTLNHPY"
 )
                     else:
-                        if uniprotkb = "P04054":
+                        if uniprotkb == "P04054":
                             identified = "Prophospholipase"
                             WTsequence = (
     "MKLLVLAVLLTVAAADSGISPRAVWQFRKMIKCVIPGSDPFLEYNNYGCYCGLGGSGTPVDELDKCCQTHDNCYDQAKKLDSCKFLLDNPYTHTYSYSCSGSAITCSSKNKECEAFIC"
     "NCDRNAAICFSKAPYNKAHKNLDTKKYCQS"
 )
                             else:
-                                if uniprotkb = "Q9UNI1":
+                                if uniprotkb == "Q9UNI1":
                                     identified = "Proelastase"
                                     WTsequence = (
     "MLVLYGHSTQDLPETNARVVGGTEAGRNSWPSQISLQYRSGGSRYHTCGGTLIRQNWVMTAAHCVDYQKTFRVVAGDHNLSQNDGTEQYVSVQKIVVHPYWNSDNVAAGYDIALLRLA"
@@ -60,7 +60,7 @@ if uniprotkb = "P07477":
     "KPTVFTQVSAYISWINNVIASN"
 )
                                     else:
-                                        if uniprotkb = "P35030":
+                                        if uniprotkb == "P35030":
                                             identified = "Mesotrypsinogen"
                                             WTsequence = (
     "MCGPDDRCPARWPGPGRAVKCGKGLAAARPGRVERGGAQRGGAGLELHPLLGGRTWRAARDADGCEALGTVAVPFDDDDKIVGGYTCEENSLPYQVSLNSGSHFCGGSLISEQWVVSA"
