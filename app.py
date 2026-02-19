@@ -27,7 +27,7 @@ if uniprotkb == "P07477":
     "INARVSTISLPTAPPATGTKCLISGWGNTASSGADYPDELQCLDAPVLSQAKCEASYPGKITSNMFCVGFLEGGKDSCQGDSGGPVVCNGQLQGVVSWGDGCAQKNKPGVYTKVYNYV"
     "KWIKNTIAANS"
 )
-    else (
+    elif (
         if uniprotkb == "P17538":
             identified = "Chymotrypsinogen"
             WTsequence = (
@@ -35,7 +35,7 @@ if uniprotkb == "P07477":
     "NDITLLKLATPARFSQTVSAVCLPSADDDFPAGTLCATTGWGKTKYNANKTPDKLQQAALPLLSNAECKKSWGRRITDVMICAGASGVSSCMGDSGGPLVCQKDGAWTLVGIVSWGSD"
     "TCSTSSPGVYARVTKLIPWVQKILAAN"
 )
-            else (
+            elif (
                 if uniprotkb == "P15085":
                     identified = "Procarboxypeptidase"
                     WTsequence = (
@@ -44,14 +44,14 @@ if uniprotkb == "P07477":
     "RKTRSHTAGSLCIGVDPNRNWDAGFGLSGASSNPCSETYHGKFANSEVEVKSIVDFVKDHGNIKAFISIHSYSQLLMYPYGYKTEPVPDQDELDQLSKAAVTALASLYGTKFNYGSII"
     "KAIYQASGSTIDWTYSQGIKYSFTFELRDTGRYGFLLPASQIIPTAKETWLALLTIMEHTLNHPY"
 )
-                    else (
+                    elif (
                         if uniprotkb == "P04054":
                             identified = "Prophospholipase"
                             WTsequence = (
     "MKLLVLAVLLTVAAADSGISPRAVWQFRKMIKCVIPGSDPFLEYNNYGCYCGLGGSGTPVDELDKCCQTHDNCYDQAKKLDSCKFLLDNPYTHTYSYSCSGSAITCSSKNKECEAFIC"
     "NCDRNAAICFSKAPYNKAHKNLDTKKYCQS"
 )
-                            else (
+                            elif (
                                 if uniprotkb == "Q9UNI1":
                                     identified = "Proelastase"
                                     WTsequence = (
