@@ -19,6 +19,13 @@ textarea {
     word-break: break-word;
 }
 
+textarea2 {
+    width: 10%;
+    height: 20px;
+    font-family: monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    }
 button {
     margin-top: 12px;
     padding: 12px 20px;
@@ -59,11 +66,13 @@ button {
 <body>
 
 <h1>Pancreatic Proenzyme Sequence Analyzer</h1>
-<small>A testing sofware to analyze a proenzyme's likelyhood functionality vs. a genetically damaged proenzyme.
-    Place the Wild Type proenzyme amino-acid sequence in the first box, then place the damaged proenzyme amino-acid sequence in the second box.
-    Note: the proenzyme's should be same specififc enzyme. Once the button under both boxes is clicked, the likelyhood functionality data will appear.</small>
 <div class="section">
-<h3>Normal (Reference) Sequence</h3>
+<h3>UniProtKB Entry Name</h3>
+<textarea2 id="uniprotkb"></textarea2>
+</div>
+
+<div class="section">
+<h3>Functional (Reference) Sequence</h3>
 <textarea id="normal"></textarea>
 </div>
 
@@ -82,12 +91,12 @@ button {
 <div class="section">
 <h3>Functional Likelihood (%)</h3>
 
-<label>Normal Enzyme</label>
+<label>Functional Enzyme Sequence</label>
 <div class="bar-container">
     <div id="normalBar" class="bar normal" style="width:0%">0%</div>
 </div>
 
-<label>Damaged Enzyme</label>
+<label>Damaged Enzyme Sequence</label>
 <div class="bar-container">
     <div id="damagedBar" class="bar damaged" style="width:0%">0%</div>
 </div>
@@ -109,7 +118,7 @@ async function analyze() {
 
     const normal = document.getElementById("normal").value.trim();
     const damaged = document.getElementById("damaged").value.trim();
-
+    const uniprotkb = document.getElementById("uniprotkb").value.trim();
     if (!normal || !damaged) {
         alert("Please paste both sequences.");
         return;
@@ -121,7 +130,8 @@ async function analyze() {
             headers: {"Content-Type": "application/json"},
             body: JSON.stringify({
                 normal_sequence: normal,
-                damaged_sequence: damaged
+                damaged_sequence: damaged,
+                uniprotkb_id: uniprotkb
             })
         });
 
