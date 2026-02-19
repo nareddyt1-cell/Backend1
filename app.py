@@ -8,6 +8,31 @@ import os
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
+# dictionary
+proenzymes = {
+    "P07477": ("Trypsinogen", "MNPLLILTFVAAALAAPFDDDDKIVGGYNCEENSVPYQVSLNSGYHFCGGSLINEQWVVSAGHCYKSR"
+    "IQVRLGEHNIEVLEGNEQFINAAKIIRHPQYDRKTLNNDIMLIKLSSRAVINARVSTISLPTAPPATGTKCLISGWGNTASSGADYPDELQCLD"
+    "APVLSQAKCEASYPGKITSNMFCVGFLEGGKDSCQGDSGGPVVCNGQLQGVVSWGDGCAQKNKPGVYTKVYNYVKWIKNTIAANS"),
+    "P17538": ("Chymotrypsinogen", "MASLWLLSCFSLVGAAFGCGVPAIHPVLSGLSRIVNGEDAVPGSWPWQVSLQDKTGFHFCGGS"
+    "LISEDWVVTAAHCGVRTSDVVVAGEFDQGSDEENIQVLKIAKVFKNPKFSILTVNNDITLLKLATPARFSQTVSAVCLPSADDDFPAGTLCATT"
+    "GWGKTKYNANKTPDKLQQAALPLLSNAECKKSWGRRITDVMICAGASGVSSCMGDSGGPLVCQKDGAWTLVGIVSWGSDTCSTSSPGVYARVTK"
+    "LIPWVQKILAAN"),
+    "P15085": ("Procarboxypeptidase", "MRGLLVLSVLLGAVFGKEDFVGHQVLRISVADEAQVQKVKELEDLEHLQLDFWRGPAHPG"
+    "SPIDVRVPFPSIQAVKIFLESHGISYETMIEDVQSLLDEEQEQMFAFRSRARSTDTFNYATYHTLEEIYDFLDLLVAENPHLVSKIQIGNTYEG"
+    "RPIYVLKFSTGGSKRPAIWIDTGIHSREWVTQASGVWFAKKITQDYGQDAAFTAILDTLDIFLEIVTNPDGFAFTHSTNRMWRKTRSHTAGSLC"
+    "IGVDPNRNWDAGFGLSGASSNPCSETYHGKFANSEVEVKSIVDFVKDHGNIKAFISIHSYSQLLMYPYGYKTEPVPDQDELDQLSKAAVTALAS"
+    "LYGTKFNYGSIIKAIYQASGSTIDWTYSQGIKYSFTFELRDTGRYGFLLPASQIIPTAKETWLALLTIMEHTLNHPY"),
+    "P04054": ("Prophospholipase", "MKLLVLAVLLTVAAADSGISPRAVWQFRKMIKCVIPGSDPFLEYNNYGCYCGLGGSGTPVDEL"
+    "DKCCQTHDNCYDQAKKLDSCKFLLDNPYTHTYSYSCSGSAITCSSKNKECEAFICNCDRNAAICFSKAPYNKAHKNLDTKKYCQS"),
+    "Q9UNI1": ("Proelastase", "MLVLYGHSTQDLPETNARVVGGTEAGRNSWPSQISLQYRSGGSRYHTCGGTLIRQNWVMTAAHCVDYQ"
+    "KTFRVVAGDHNLSQNDGTEQYVSVQKIVVHPYWNSDNVAAGYDIALLRLAQSVTLNSYVQLGVLPQEGAILANNSPCYITGWGKTKTNGQLAQT"
+    "LQQAYLPSVDYAICSSSSYWGSTVKNTMVCAGGDGVRSGCQGDSGGPLHCLVNGKYSVHGVTSFVSSRGCNVSRKPTVFTQVSAYISWINNVIASN"),
+    "P35030": ("Mesotrypsinogen", "MCGPDDRCPARWPGPGRAVKCGKGLAAARPGRVERGGAQRGGAGLELHPLLGGRTWRAARDADG"
+    "CEALGTVAVPFDDDDKIVGGYTCEENSLPYQVSLNSGSHFCGGSLISEQWVVSAAHCYKTRIQVRLGEHNIKVLEGNEQFINAAKIIRHPKYNR"
+    "DTLDNDIMLIKLSSPAVINARVSTISLPTTPPAAGTECLISGWGNTLSFGADYPDELKCLDAPVLTQAECKASYPGKITNSMFCVGFLEGGKDS"
+    "CQRDSGGPVVCNGQLQGVVSWGHGCAWKNRPGVYTKVYNYVDWIKDTIAANS")
+}
+
 # dumping data to frontend
 @app.route("/")
 def home():
@@ -18,81 +43,51 @@ def analyze():
     data = request.json
     uniprotkb = data["uniprotkb_id"].upper()
     damaged = data["damaged_sequence"].upper()
+    
+    if uniprotkb not in proenzymes:
+        return jsonify({"error": "Uniprot ID not found"}), 404
 
-# identifying the enzyme/sequence
-if uniprotkb == "P07477":
-    identified = "Trypsinogen"
-    WTsequence = (
-    "MNPLLILTFVAAALAAPFDDDDKIVGGYNCEENSVPYQVSLNSGYHFCGGSLINEQWVVSAGHCYKSRIQVRLGEHNIEVLEGNEQFINAAKIIRHPQYDRKTLNNDIMLIKLSSRAV"
-    "INARVSTISLPTAPPATGTKCLISGWGNTASSGADYPDELQCLDAPVLSQAKCEASYPGKITSNMFCVGFLEGGKDSCQGDSGGPVVCNGQLQGVVSWGDGCAQKNKPGVYTKVYNYV"
-    "KWIKNTIAANS"
-)
-    elif (
-        if uniprotkb == "P17538":
-            identified = "Chymotrypsinogen"
-            WTsequence = (
-    "MASLWLLSCFSLVGAAFGCGVPAIHPVLSGLSRIVNGEDAVPGSWPWQVSLQDKTGFHFCGGSLISEDWVVTAAHCGVRTSDVVVAGEFDQGSDEENIQVLKIAKVFKNPKFSILTVN"
-    "NDITLLKLATPARFSQTVSAVCLPSADDDFPAGTLCATTGWGKTKYNANKTPDKLQQAALPLLSNAECKKSWGRRITDVMICAGASGVSSCMGDSGGPLVCQKDGAWTLVGIVSWGSD"
-    "TCSTSSPGVYARVTKLIPWVQKILAAN"
-)
-            elif (
-                if uniprotkb == "P15085":
-                    identified = "Procarboxypeptidase"
-                    WTsequence = (
-    "MRGLLVLSVLLGAVFGKEDFVGHQVLRISVADEAQVQKVKELEDLEHLQLDFWRGPAHPGSPIDVRVPFPSIQAVKIFLESHGISYETMIEDVQSLLDEEQEQMFAFRSRARSTDTFN"
-    "YATYHTLEEIYDFLDLLVAENPHLVSKIQIGNTYEGRPIYVLKFSTGGSKRPAIWIDTGIHSREWVTQASGVWFAKKITQDYGQDAAFTAILDTLDIFLEIVTNPDGFAFTHSTNRMW"
-    "RKTRSHTAGSLCIGVDPNRNWDAGFGLSGASSNPCSETYHGKFANSEVEVKSIVDFVKDHGNIKAFISIHSYSQLLMYPYGYKTEPVPDQDELDQLSKAAVTALASLYGTKFNYGSII"
-    "KAIYQASGSTIDWTYSQGIKYSFTFELRDTGRYGFLLPASQIIPTAKETWLALLTIMEHTLNHPY"
-)
-                    elif (
-                        if uniprotkb == "P04054":
-                            identified = "Prophospholipase"
-                            WTsequence = (
-    "MKLLVLAVLLTVAAADSGISPRAVWQFRKMIKCVIPGSDPFLEYNNYGCYCGLGGSGTPVDELDKCCQTHDNCYDQAKKLDSCKFLLDNPYTHTYSYSCSGSAITCSSKNKECEAFIC"
-    "NCDRNAAICFSKAPYNKAHKNLDTKKYCQS"
-)
-                            elif (
-                                if uniprotkb == "Q9UNI1":
-                                    identified = "Proelastase"
-                                    WTsequence = (
-    "MLVLYGHSTQDLPETNARVVGGTEAGRNSWPSQISLQYRSGGSRYHTCGGTLIRQNWVMTAAHCVDYQKTFRVVAGDHNLSQNDGTEQYVSVQKIVVHPYWNSDNVAAGYDIALLRLA"
-    "QSVTLNSYVQLGVLPQEGAILANNSPCYITGWGKTKTNGQLAQTLQQAYLPSVDYAICSSSSYWGSTVKNTMVCAGGDGVRSGCQGDSGGPLHCLVNGKYSVHGVTSFVSSRGCNVSR"
-    "KPTVFTQVSAYISWINNVIASN"
-)
-                                    else (
-                                        if uniprotkb == "P35030":
-                                            identified = "Mesotrypsinogen"
-                                            WTsequence = (
-    "MCGPDDRCPARWPGPGRAVKCGKGLAAARPGRVERGGAQRGGAGLELHPLLGGRTWRAARDADGCEALGTVAVPFDDDDKIVGGYTCEENSLPYQVSLNSGSHFCGGSLISEQWVVSA"
-    "AHCYKTRIQVRLGEHNIKVLEGNEQFINAAKIIRHPKYNRDTLDNDIMLIKLSSPAVINARVSTISLPTTPPAAGTECLISGWGNTLSFGADYPDELKCLDAPVLTQAECKASYPGKI"
-    "TNSMFCVGFLEGGKDSCQRDSGGPVVCNGQLQGVVSWGHGCAWKNRPGVYTKVYNYVDWIKDTIAANS"
-)
-)))))
+    identified, WTsequence = proenzymes[uniprotkb]
 
 # analyze the changes in WT sequence and damaged sequence
- changes = []
-    for i, (a, b) in enumerate(zip(WTsequence, damaged)):
-        if a != b:
-            mutations.append({
+    changes = []
+    max_len = max(len(WTsequence), len(damaged))
+    for i in range(max_len):
+        characters_WT = WTsequence[i] if i < len(WTsequence) else "-"
+        characters_damage = damaged[i] if i < len(damaged) else "-"
+        
+        if characters_WT != characters_damage:
+            changes.append({
                 "position": i + 1,
-                "from": a,
-                "to": b
-            })
+                "from": characters_WT,
+                "to": characters_damage
+})
 
-# read the amino acid percentage
-analysed_seq = ProteinAnalysis(WTsequence)
-amino_acid_percent = analysed_seq.get_amino_acids_percent()
+# find the amino acid percentage
+    analysed_WT = ProteinAnalysis(WTsequence)
+    analysed_damage = ProteinAnalysis(damaged)
+    WT_percents = analysed_WT.get_amino_acids_percent()
+    damage_percents = analysed_damage.get_amino_acids_percent()
 
-# math for percentage
-length_WT_sequence = len(WTsequence)
-damaged_percent = (length_WT_sequence - changes) * amino_acid_percent
+# math by absolute value
+    total_diff = 0
+    for aa in WT_percents:
+        total_diff += abs(WT_percents[aa] - damage_percents.get(aa, 0))
+    damaged_percent = max(0, (1 - total_diff) * 100)
+
+# number of changes
+    changes = []
+    max_len = max(len(WTsequence), len(damaged))
+    for characters in range(max_len):
+        if WTsequence[characters] != damaged[characters]:
+            changes.append({"pos": i + 1, "wt": char_wt, "dmg": char_dmg})
 
 # return data collection to frontend
     return jsonify({
         "identified_enzyme": identified,
         "changes_in_sequence": changes,
         "damaged_percent": damaged_percent
-    })
+})
 
 # code going to PORT
 if __name__ == "__main__":
