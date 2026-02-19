@@ -27,7 +27,7 @@ if uniprotkb == "P07477":
     "INARVSTISLPTAPPATGTKCLISGWGNTASSGADYPDELQCLDAPVLSQAKCEASYPGKITSNMFCVGFLEGGKDSCQGDSGGPVVCNGQLQGVVSWGDGCAQKNKPGVYTKVYNYV"
     "KWIKNTIAANS"
 )
-    else:
+    else
         if uniprotkb == "P17538":
             identified = "Chymotrypsinogen"
             WTsequence = (
@@ -35,7 +35,7 @@ if uniprotkb == "P07477":
     "NDITLLKLATPARFSQTVSAVCLPSADDDFPAGTLCATTGWGKTKYNANKTPDKLQQAALPLLSNAECKKSWGRRITDVMICAGASGVSSCMGDSGGPLVCQKDGAWTLVGIVSWGSD"
     "TCSTSSPGVYARVTKLIPWVQKILAAN"
 )
-            else:
+            else
                 if uniprotkb == "P15085":
                     identified = "Procarboxypeptidase"
                     WTsequence = (
@@ -44,14 +44,14 @@ if uniprotkb == "P07477":
     "RKTRSHTAGSLCIGVDPNRNWDAGFGLSGASSNPCSETYHGKFANSEVEVKSIVDFVKDHGNIKAFISIHSYSQLLMYPYGYKTEPVPDQDELDQLSKAAVTALASLYGTKFNYGSII"
     "KAIYQASGSTIDWTYSQGIKYSFTFELRDTGRYGFLLPASQIIPTAKETWLALLTIMEHTLNHPY"
 )
-                    else:
+                    else
                         if uniprotkb == "P04054":
                             identified = "Prophospholipase"
                             WTsequence = (
     "MKLLVLAVLLTVAAADSGISPRAVWQFRKMIKCVIPGSDPFLEYNNYGCYCGLGGSGTPVDELDKCCQTHDNCYDQAKKLDSCKFLLDNPYTHTYSYSCSGSAITCSSKNKECEAFIC"
     "NCDRNAAICFSKAPYNKAHKNLDTKKYCQS"
 )
-                            else:
+                            else
                                 if uniprotkb == "Q9UNI1":
                                     identified = "Proelastase"
                                     WTsequence = (
@@ -59,7 +59,7 @@ if uniprotkb == "P07477":
     "QSVTLNSYVQLGVLPQEGAILANNSPCYITGWGKTKTNGQLAQTLQQAYLPSVDYAICSSSSYWGSTVKNTMVCAGGDGVRSGCQGDSGGPLHCLVNGKYSVHGVTSFVSSRGCNVSR"
     "KPTVFTQVSAYISWINNVIASN"
 )
-                                    else:
+                                    else
                                         if uniprotkb == "P35030":
                                             identified = "Mesotrypsinogen"
                                             WTsequence = (
