@@ -8,8 +8,18 @@ import os
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
+# dumping data to frontend
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    data = request.json
+    uniprotkb = data["uniprotkb_id"].upper()
+    damaged = data["damaged_sequence"].upper()
 # dictionary
-proenzymes = {
+    proenzymes = {
     "P07477": ("Trypsinogen", "MNPLLILTFVAAALAAPFDDDDKIVGGYNCEENSVPYQVSLNSGYHFCGGSLINEQWVVSAGHCYKSR"
     "IQVRLGEHNIEVLEGNEQFINAAKIIRHPQYDRKTLNNDIMLIKLSSRAVINARVSTISLPTAPPATGTKCLISGWGNTASSGADYPDELQCLD"
     "APVLSQAKCEASYPGKITSNMFCVGFLEGGKDSCQGDSGGPVVCNGQLQGVVSWGDGCAQKNKPGVYTKVYNYVKWIKNTIAANS"),
@@ -32,18 +42,6 @@ proenzymes = {
     "DTLDNDIMLIKLSSPAVINARVSTISLPTTPPAAGTECLISGWGNTLSFGADYPDELKCLDAPVLTQAECKASYPGKITNSMFCVGFLEGGKDS"
     "CQRDSGGPVVCNGQLQGVVSWGHGCAWKNRPGVYTKVYNYVDWIKDTIAANS")
 }
-
-# dumping data to frontend
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    data = request.json
-    uniprotkb = data["uniprotkb_id"].upper()
-    damaged = data["damaged_sequence"].upper()
-    
     if uniprotkb not in proenzymes:
         return jsonify({"error": "Uniprot ID not found"}), 404
 
