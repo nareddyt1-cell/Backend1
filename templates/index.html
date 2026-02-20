@@ -93,10 +93,9 @@ button {
 <script>
 async function analyze() {
     console.log("Analyze button clicked");
-
     const uniprotkb = document.getElementById("uniprotkb").value.trim();
     const damaged = document.getElementById("damaged").value.trim();
-    if (!normal || !damaged) {
+    if (!uniprotkb || !damaged) {
         alert("Please paste both sequences.");
         return;
     }
