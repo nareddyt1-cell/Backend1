@@ -8,18 +8,8 @@ import os
 app = Flask(__name__, template_folder="templates")
 CORS(app)
 
-# dumping data to frontend
-@app.route("/")
-def home():
-    return render_template("index.html")
-
-@app.route("/analyze", methods=["POST"])
-def analyze():
-    data = request.json
-    uniprotkb = data["uniprotkb_id"].upper()
-    damaged = data["damaged_sequence"].upper()
 # dictionary
-    proenzymes = {
+proenzymes = {
     "P07477": ("Trypsinogen", "MNPLLILTFVAAALAAPFDDDDKIVGGYNCEENSVPYQVSLNSGYHFCGGSLINEQWVVSAGHCYKSR"
     "IQVRLGEHNIEVLEGNEQFINAAKIIRHPQYDRKTLNNDIMLIKLSSRAVINARVSTISLPTAPPATGTKCLISGWGNTASSGADYPDELQCLD"
     "APVLSQAKCEASYPGKITSNMFCVGFLEGGKDSCQGDSGGPVVCNGQLQGVVSWGDGCAQKNKPGVYTKVYNYVKWIKNTIAANS"),
@@ -42,6 +32,18 @@ def analyze():
     "DTLDNDIMLIKLSSPAVINARVSTISLPTTPPAAGTECLISGWGNTLSFGADYPDELKCLDAPVLTQAECKASYPGKITNSMFCVGFLEGGKDS"
     "CQRDSGGPVVCNGQLQGVVSWGHGCAWKNRPGVYTKVYNYVDWIKDTIAANS")
 }
+
+# dumping data to frontend
+@app.route("/")
+def home():
+    return render_template("index.html")
+
+@app.route("/analyze", methods=["POST"])
+def analyze():
+    data = request.json
+    uniprotkb = data["uniprotkb_id"].upper()
+    damaged = data["damaged_sequence"].upper()
+    
     if uniprotkb not in proenzymes:
         return jsonify({"error": "Uniprot ID not found"}), 404
 
@@ -73,12 +75,6 @@ def analyze():
         total_diff += abs(WT_percents[aa] - damage_percents.get(aa, 0))
     damaged_percent = max(0, (1 - total_diff) * 100)
 
-# number of changes
-    changes = []
-    max_len = max(len(WTsequence), len(damaged))
-    for characters in range(max_len):
-        if WTsequence[characters] != damaged[characters]:
-            changes.append({"pos": i + 1, "wt": char_wt, "dmg": char_dmg})
 
 # return data collection to frontend
     return jsonify({
