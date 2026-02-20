@@ -72,7 +72,7 @@ def analyze():
 # math by absolute value
     total_diff = 0
     for aa in WT_percents:
-        total_diff += abs(WT_percents[aa] - damage_percents.get(aa, 0))
+        total_diff += abs(WT_percents[aa] - damage_percents.get(aa, 0) * 10)
     damaged_percent = max(0, (1 - total_diff) * 100)
 
 
