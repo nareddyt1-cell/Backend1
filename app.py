@@ -73,7 +73,7 @@ def analyze():
     total_diff = 0
     for ii in WT_percents:
         total_diff += abs(WT_percents[ii] - damage_percents.get(ii, 0))
-    damaged_percent = max(0, (1 - total_diff) * 50)
+    damaged_percent = max(0, (1 - total_diff) * 100)
 
 
 # return data collection to frontend
