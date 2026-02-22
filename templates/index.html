@@ -115,10 +115,11 @@ async function analyze() {
         document.getElementById("enzyme").textContent = data.identified_enzyme;
         document.getElementById("damagedBar").style.width = data.damaged_percent + "%";
         document.getElementById("damagedBar").textContent = data.damaged_percent + "%";
-        document.getElementById("changes").textContent = data.changes_in_sequence;
-            data.changes.map(
-                m => `Position ${m.position}: ${m.from} → ${m.to}`
-            ).join("\n") || "No changes in amino acids detected.";
+        const formattedChanges = data.changes_in_sequence.map(
+    m => `Position ${m.position}: ${m.from} → ${m.to}`
+).join("\n");
+
+document.getElementById("changes").textContent = formattedChanges || "No changes detected.";
 
     } catch (err) {
         console.error(err);
